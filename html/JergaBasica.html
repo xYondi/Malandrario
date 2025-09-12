@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malandrário - Jerga básica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #F5FAFF;
+            --card: #FFFFFF;
+            --text: #0F172A;
+            --muted: #64748B;
+            --primary: #F59E0B;
+            --primary-2: #FACC15;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); }
+        .pixel { height: 850px; aspect-ratio: 9/19.5; border-radius: 40px; border: 8px solid #000; box-shadow: 0 25px 50px -12px rgba(0,0,0,.5); background: linear-gradient(180deg,#E6F1FF, #FFFFFF 40%, #F7FBFF); }
+        .chip { background:#fff; border:2px solid #E2E8F0; border-radius:14px; padding:6px 10px; display:flex; align-items:center; gap:6px; box-shadow:0 2px 0 rgba(0,0,0,.05); }
+        .chip:disabled { background:#F3F4F6; border-color:#D1D5DB; color:#9CA3AF; cursor:not-allowed; opacity:0.6; }
+        
+        /* Botón de pista mejorado */
+        .hint-btn { 
+            background: linear-gradient(135deg, #FEF3C7, #FDE68A, #F59E0B); 
+            color: #0F172A; 
+            font-weight: 800; 
+            border-radius: 16px; 
+            padding: 12px 16px; 
+            border: 3px solid #FACC15; 
+            box-shadow: 0 6px 0 #D97706, inset 0 2px 0 rgba(255,255,255,0.8); 
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .hint-btn:hover:not(:disabled) { 
+            transform: translateY(-2px); 
+            box-shadow: 0 8px 0 #D97706, inset 0 2px 0 rgba(255,255,255,0.8);
+            background: linear-gradient(135deg, #FEF3C7, #FACC15, #F59E0B);
+        }
+        .hint-btn:active:not(:disabled) { 
+            transform: translateY(2px); 
+            box-shadow: 0 4px 0 #D97706, inset 0 2px 0 rgba(255,255,255,0.8);
+        }
+        .hint-btn:disabled {
+            background: linear-gradient(135deg, #F3F4F6, #E5E7EB);
+            border-color: #D1D5DB;
+            color: #9CA3AF;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        /* Efecto de brillo para pista */
+        .hint-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), rgba(250,204,21,0.4), transparent);
+            transition: left 0.4s ease;
+        }
+        .hint-btn:hover:not(:disabled)::before {
+            left: 100%;
+        }
+        .cta { background: linear-gradient(180deg, var(--primary-2), var(--primary)); color:#0F172A; font-weight:900; border-radius:16px; padding:12px 16px; border:3px solid #FDE68A; box-shadow:0 6px 0 #D97706; }
+        .cta:active { transform: translateY(2px); box-shadow:0 4px 0 #D97706; }
+        
+        /* Botón de lobby mejorado */
+        .lobby-btn { 
+            background: linear-gradient(135deg, #FFFFFF, #FEF3C7, #FDE68A); 
+            color: #0F172A; 
+            font-weight: 800; 
+            border-radius: 20px; 
+            padding: 16px 20px; 
+            border: 3px solid #F59E0B; 
+            box-shadow: 0 8px 0 #D97706, inset 0 2px 0 rgba(255,255,255,0.9); 
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .lobby-btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 0 #D97706, inset 0 2px 0 rgba(255,255,255,0.9);
+            border-color: #FACC15;
+            background: linear-gradient(135deg, #FFFFFF, #FEF3C7, #FACC15);
+        }
+        .lobby-btn:active { 
+            transform: translateY(2px); 
+            box-shadow: 0 6px 0 #D97706, inset 0 2px 0 rgba(255,255,255,0.9);
+        }
+        
+        /* Efecto de brillo en el botón */
+        .lobby-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), rgba(250,204,21,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        .lobby-btn:hover::before {
+            left: 100%;
+        }
+        .option { background:#fff; border:2px solid #E2E8F0; border-radius:16px; padding:14px; font-weight:800; text-align:center; box-shadow:0 6px 0 rgba(0,0,0,.06); }
+        .option.correct { border-color:#22C55E; box-shadow:0 6px 0 rgba(34,197,94,.4); }
+        .option.incorrect { border-color:#EF4444; box-shadow:0 6px 0 rgba(239,68,68,.4); }
+        .option.eliminada { border-color:#9CA3AF; background:#F3F4F6; color:#9CA3AF; }
+        .progress { height: 12px; background:#E5E7EB; border-radius:9999px; border:2px solid #CBD5E1; overflow:hidden; }
+        .bar { height:100%; background:linear-gradient(90deg,#60A5FA,#22C55E); width:0%; transition: width .35s ease; }
+        .opt-wrap { display:flex; align-items:center; gap:10px; justify-content:center; }
+        .opt-kbd { width:26px; height:26px; border-radius:9999px; background:#E0E7FF; color:#3730A3; font-weight:900; display:flex; align-items:center; justify-content:center; }
+        .feedback { font-weight:900; }
+        .feedback.ok { color:#16A34A; }
+        .feedback.bad { color:#DC2626; }
+
+        /* Animaciones */
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .anim-in { animation: fadeUp .35s ease-out both; }
+        @keyframes correctPulse { 0% { transform: scale(1); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+        .correctPulse { animation: correctPulse .4s ease-out both; }
+        @keyframes shake { 0%,100%{ transform: translateX(0);} 25%{ transform: translateX(-6px);} 50%{ transform: translateX(6px);} 75%{ transform: translateX(-3px);} }
+        .shake { animation: shake .35s ease-out both; }
+        
+        /* Animaciones inmersivas para errores */
+        @keyframes errorShake { 
+            0%,100% { transform: translateX(0) rotate(0deg); } 
+            10% { transform: translateX(-8px) rotate(-2deg); } 
+            20% { transform: translateX(8px) rotate(2deg); } 
+            30% { transform: translateX(-6px) rotate(-1deg); } 
+            40% { transform: translateX(6px) rotate(1deg); } 
+            50% { transform: translateX(-4px) rotate(-0.5deg); } 
+            60% { transform: translateX(4px) rotate(0.5deg); } 
+            70% { transform: translateX(-2px) rotate(-0.2deg); } 
+            80% { transform: translateX(2px) rotate(0.2deg); } 
+            90% { transform: translateX(-1px) rotate(-0.1deg); } 
+        }
+        .errorShake { animation: errorShake .8s ease-out both; }
+        
+        @keyframes errorGlow { 
+            0% { box-shadow: 0 6px 0 rgba(239,68,68,.4), 0 0 0 0 rgba(239,68,68,.6); } 
+            50% { box-shadow: 0 8px 0 rgba(239,68,68,.6), 0 0 0 12px rgba(239,68,68,.2); } 
+            100% { box-shadow: 0 6px 0 rgba(239,68,68,.4), 0 0 0 0 rgba(239,68,68,.0); } 
+        }
+        .errorGlow { animation: errorGlow .6s ease-out both; }
+        
+        /* Animaciones para eliminación de opciones */
+        @keyframes eliminateSlide { 
+            0% { transform: translateX(0) scale(1); opacity: 1; } 
+            30% { transform: translateX(-10px) scale(0.95); opacity: 0.8; } 
+            70% { transform: translateX(20px) scale(0.7); opacity: 0.3; } 
+            100% { transform: translateX(100px) scale(0.3); opacity: 0; } 
+        }
+        .eliminateSlide { animation: eliminateSlide .8s ease-in-out both; }
+        
+        @keyframes eliminateFadeOut { 
+            0% { filter: grayscale(0%) brightness(1); } 
+            50% { filter: grayscale(70%) brightness(0.7); } 
+            100% { filter: grayscale(100%) brightness(0.4); } 
+        }
+        .eliminateFadeOut { animation: eliminateFadeOut .8s ease-out both; }
+        #fx { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+        .confetti { position:absolute; font-size:14px; animation: burst .7s ease-out forwards; }
+        @keyframes burst { from { opacity:.95; transform: translate(0,0) scale(.9) rotate(0); } to { opacity:0; transform: translate(var(--dx), var(--dy)) scale(.6) rotate(90deg); } }
+
+        /* Efectos sutiles de acierto */
+        .option { transition: transform .15s ease, box-shadow .2s ease; }
+        .option:hover { transform: translateY(-2px); }
+        @keyframes glowPulse { 0%{ box-shadow:0 6px 0 rgba(34,197,94,.35), 0 0 0 0 rgba(34,197,94,.35);} 50%{ box-shadow:0 8px 0 rgba(34,197,94,.45), 0 0 0 8px rgba(34,197,94,.15);} 100%{ box-shadow:0 6px 0 rgba(34,197,94,.35), 0 0 0 0 rgba(34,197,94,.0);} }
+        .glow { animation: glowPulse .7s ease-out 1; }
+        .ring { position:absolute; border:3px solid #86EFAC; border-radius:9999px; width:24px; height:24px; left:0; top:0; transform:translate(-50%,-50%) scale(.4); opacity:.85; animation:ring .6s ease-out forwards; }
+        @keyframes ring { to { transform:translate(-50%,-50%) scale(6); opacity:0; } }
+        .check { position:absolute; background:#22C55E; color:#fff; font-weight:900; border-radius:9999px; padding:6px 10px; left:0; top:0; transform:translate(-50%,-100%) scale(.85); animation:check .55s ease-out forwards; box-shadow:0 6px 0 rgba(0,0,0,.06); }
+        @keyframes check { 50% { transform:translate(-50%,-115%) scale(1.05);} 100% { transform:translate(-50%,-150%) scale(1); opacity:0; } }
+        .sparkle { position:absolute; width:6px; height:6px; background:#FDE68A; border-radius:50%; left:0; top:0; transform:translate(-50%,-50%); animation:spark .7s ease-out forwards; }
+        @keyframes spark { to { transform: translate(var(--dx), var(--dy)) scale(.7); opacity:0; } }
+        
+        /* Animaciones de partículas */
+        @keyframes errorParticle { 
+            from { opacity: 1; transform: translate(0, 0) scale(1); } 
+            to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.3); } 
+        }
+        @keyframes eliminateParticle { 
+            from { opacity: 1; transform: translate(0, 0) scale(1); } 
+            to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.2); } 
+        }
+
+        /* Modales */
+        .overlay { position:absolute; inset:0; background:rgba(10,15,25,.55); display:none; align-items:center; justify-content:center; z-index:60; }
+        .modal { background:#fff; border:3px solid #E2E8F0; border-radius:20px; padding:18px; width:85%; box-shadow:0 16px 0 rgba(0,0,0,.08); }
+        .modal h2 { font-weight:900; font-size:18px; margin-bottom:6px; }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen p-4">
+    <div id="game" class="w-full max-w-sm pixel text-[var(--text)] overflow-hidden relative flex flex-col">
+        <div id="fx"></div>
+
+        <!-- HUD -->
+        <div class="w-full flex items-center justify-between px-4 pt-3">
+            <button onclick="goHome()" class="chip hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 hover:border-orange-300 transition-all duration-200 flex items-center gap-2">
+                <span class="text-lg">🎮</span>
+                <span class="font-bold text-sm">Lobby</span>
+            </button>
+            <div class="flex items-center gap-2">
+                <div class="chip bg-gradient-to-r from-red-50 to-pink-50 border-red-200">
+                    <span class="text-lg">❤️</span>
+                    <span id="vidas" class="font-bold">3</span>
+                </div>
+                <div class="chip bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
+                    <span class="text-lg">🔥</span>
+                    <span id="streak" class="font-bold">0</span>
+                </div>
+                <div class="chip bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+                    <span class="text-lg">💎</span>
+                    <span id="metras" class="font-bold">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido -->
+        <div class="flex-1 p-4 flex flex-col gap-4">
+            <header class="text-center anim-in" style="animation-delay:40ms">
+                <h1 class="text-xl font-black">Traduce la Jerga · Nivel <span id="nivel">1</span></h1>
+                <p id="qnum" class="text-xs text-[var(--muted)] mt-1">Pregunta 1/1</p>
+                <p class="text-sm text-[var(--muted)]">Traduce la palabra o frase al “criollísimo”.</p>
+            </header>
+
+            <!-- Progreso -->
+            <div class="progress"><div id="prog" class="bar" style="width:0%"></div></div>
+
+            <!-- Tarjeta de pregunta -->
+            <div class="bg-[var(--card)] border-2 border-gray-200 rounded-2xl shadow-xl p-4 anim-in" style="animation-delay:80ms">
+                <div id="prompt" class="text-center text-2xl font-extrabold">Loading…</div>
+                <div id="feedback" class="text-center text-sm mt-1"></div>
+                <div id="hint" class="text-center text-xs text-[var(--muted)] mt-1"></div>
+            </div>
+
+            <!-- Opciones -->
+            <div id="options" class="grid grid-cols-2 gap-3 anim-in" style="animation-delay:120ms"></div>
+
+            <div class="flex mt-auto">
+                <button id="btnPista" class="hint-btn flex-1 justify-center flex items-center gap-2">
+                    <span class="text-lg">💡</span>
+                    <span>Pista</span>
+                    <span class="text-sm bg-white/30 px-2 py-1 rounded-full">1 🔵</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Modales -->
+        <div id="modalDerrota" class="overlay">
+            <div class="modal">
+                <h2>Te quedaste sin vidas</h2>
+                <p class="text-[var(--muted)] text-sm mb-3">Puedes continuar este nivel con 1 vida pagando 2 Metras.</p>
+                <div class="flex gap-2">
+                    <button onclick="continuarConMetras()" class="cta flex-1">Continuar (2 🔵)</button>
+                    <button onclick="goHome()" class="chip flex-1 justify-center">Salir</button>
+                </div>
+            </div>
+        </div>
+        <div id="modalVictoria" class="overlay">
+            <div class="modal text-center">
+                <h2>¡Nivel completado!</h2>
+                <p class="text-[var(--muted)] text-sm">Ganaste <b>5 Metras</b>. Se desbloquea el siguiente nivel.</p>
+                <div class="mt-3">
+                    <button onclick="siguienteNivel()" class="cta w-full">Siguiente nivel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Nivel 1 - Preguntas fijas: Traduce la Jerga
+        const QUESTIONS_LEVEL_1 = [
+            {
+                q: "¿Cómo se dice 'muchacho' o 'muchacha' en la jerga venezolana de barrio?",
+                choices: ["Chamín", "Chamo", "Pibe", "Convive"],
+                a: "Convive",
+                hint: "La palabra empieza con 'Ch'."
+            },
+            {
+                q: "Si un chamo se queda sin trabajo y no tiene ni un bolívar para pagar la renta, ¿en qué situación está?",
+                choices: ["En el limbo", "En la cuerda floja", "En la olla", "En el aire"],
+                a: "En la olla",
+                hint: "Es un dicho que se usa cuando estás en aprietos."
+            },
+            {
+                q: "¿Qué significa 'Echar los perros'?",
+                choices: ["Estar con tu perro o pasearlo", "Coquetear o seducir a alguien", "Tener mala suerte", "Regalarle un perro a alguien"],
+                a: "Coquetear o seducir a alguien",
+                hint: "Esta frase tiene que ver con el romance."
+            },
+            {
+                q: "En la jerga, ¿qué es un 'coroto'?",
+                choices: ["Un tipo de comida exótica", "Un animal de la calle", "Un objeto o una cosa cualquiera que no tiene mucho valor", "Una persona muy perezosa"],
+                a: "Un objeto o una cosa cualquiera que no tiene mucho valor",
+                hint: "Todos tenemos corotos en la casa."
+            },
+            {
+                q: "¿Qué significa 'darle al coco'?",
+                choices: ["Golpearse la cabeza", "Pensar o analizar algo intensamente", "Comer un coco", "Darse un golpe"],
+                a: "Pensar o analizar algo intensamente",
+                hint: "Es algo que todos hacemos cuando estudiamos."
+            },
+            {
+                q: "¿Qué significa 'burda de'?",
+                choices: ["Algo muy feo", "Una gran cantidad o mucho", "Una palabra sin sentido", "Algo muy bueno"],
+                a: "Una gran cantidad o mucho",
+                hint: "Se usa para describir la cantidad de algo."
+            },
+            {
+                q: "En la jerga, ¿qué significa la frase 'Echar una vaina'?",
+                choices: ["Tener una discusión o pelear con alguien", "Echar algo en un recipiente", "Hablar de algo sin importancia", "Comer una comida tradicional"],
+                a: "Tener una discusión o pelear con alguien",
+                hint: "Se usa para describir una acción de conflicto."
+            },
+            {
+                q: "¿Qué significa 'Chevere'?",
+                choices: ["Algo viejo o pasado de moda", "Algo muy bueno, genial o de calidad", "Estar cansado", "Estar triste"],
+                a: "Algo muy bueno, genial o de calidad",
+                hint: "Es un adjetivo para describir algo que te gusta mucho."
+            },
+            {
+                q: "Llegas a la casa y tu vecina te dice: '¡Ponte las pilas que en la esquina se armó un brollo!'. ¿Qué te está avisando?",
+                choices: ["Que hay una fiesta con mucha gente", "Que hay un problema, un chisme o un escándalo en la calle", "Que alguien está borracho", "Que hay mucho tráfico"],
+                a: "Que hay un problema, un chisme o un escándalo en la calle",
+                hint: "Se usa mucho en las telenovelas y en los grupos de WhatsApp."
+            },
+            {
+                q: "Cuando a alguien le llega una gran cantidad de dinero de forma inesperada, ¿qué dirían los panas que le cayó?",
+                choices: ["Un maná", "Una guayaba", "Un palo", "Una patilla"],
+                a: "Un palo",
+                hint: "Es algo que todos quisiéramos que nos caiga."
+            }
+        ];
+
+        // MVP: claves definidas pero no persistimos metras
+        const NIVEL_KEY = 'malandrario.nivel';
+        const METRAS_KEY = 'malandrario.metras';
+        const VIDAS_KEY = 'malandrario.vidas';
+        const VIDAS_TIMESTAMP_KEY = 'malandrario.vidas_timestamp';
+
+        let nivelActual = Number(localStorage.getItem(NIVEL_KEY) || '1');
+        let index = 0;
+        let score = 0;
+        let streak = Number(localStorage.getItem('malandrario.streak')||'0');
+        // MVP: metras hardcodeadas
+        let metras = 5;
+        let vidas = Number(localStorage.getItem(VIDAS_KEY)||'3');
+
+        const promptEl = document.getElementById('prompt');
+        const hintEl = document.getElementById('hint');
+        const optionsEl = document.getElementById('options');
+        const barEl = document.getElementById('prog');
+        const streakEl = document.getElementById('streak');
+        const metrasEl = document.getElementById('metras');
+        const vidasEl = document.getElementById('vidas');
+        const feedbackEl = document.getElementById('feedback');
+        const qnumEl = document.getElementById('qnum');
+        const nivelEl = document.getElementById('nivel');
+        const btnPista = document.getElementById('btnPista');
+
+        function goHome(){ window.location.href = 'Inicio.html'; }
+
+        // Regeneración de vidas (cada 30 minutos una vida hasta 3)
+        function regenerarVidasSiCorresponde(){
+            if(vidas >= 3) return;
+            const last = Number(localStorage.getItem(VIDAS_TIMESTAMP_KEY)||Date.now());
+            const now = Date.now();
+            const passed = Math.floor((now - last) / (30*60*1000));
+            if(passed > 0){
+                vidas = Math.min(3, vidas + passed);
+                localStorage.setItem(VIDAS_KEY, String(vidas));
+                localStorage.setItem(VIDAS_TIMESTAMP_KEY, String(now));
+            }
+        }
+
+        function shuffle(arr){ return arr.sort(()=>Math.random()-0.5); }
+
+        function render(){
+            const q = QUESTIONS[index];
+            promptEl.textContent = q.q;
+            hintEl.textContent = '';
+            feedbackEl.textContent = '';
+            optionsEl.innerHTML = '';
+            barEl.style.width = `${(index/QUESTIONS.length)*100}%`;
+            streakEl.textContent = String(streak);
+            nivelEl.textContent = String(nivelActual);
+            regenerarVidasSiCorresponde();
+            metrasEl.textContent = String(metras);
+            vidasEl.textContent = String(vidas);
+            qnumEl.textContent = `Pregunta ${index+1}/${QUESTIONS.length}`;
+            const letters = ['A','B','C','D'];
+            shuffle(q.choices.slice()).forEach((choice, i) => {
+                const b = document.createElement('button');
+                b.className = 'option anim-in';
+                b.style.animationDelay = `${160 + i*60}ms`;
+                b.innerHTML = `<div class="opt-wrap"><span class="opt-kbd">${letters[i]||''}</span><span>${choice}</span></div>`;
+                b.setAttribute('data-choice', choice);
+                b.onclick = ()=> pick(choice);
+                optionsEl.appendChild(b);
+            });
+            // Actualizar estado del botón de pista
+            updateMetrasUI();
+        }
+
+        function pick(choice){
+            const q = QUESTIONS[index];
+            const children = Array.from(optionsEl.children);
+            children.forEach(btn=>{
+                btn.disabled = true;
+                const text = (btn.getAttribute('data-choice') || btn.textContent).trim();
+                if(text === q.a){ btn.classList.add('correct'); }
+                else if(text === choice){ btn.classList.add('incorrect'); }
+            });
+            if(choice === q.a){
+                score++; streak++;
+                feedbackEl.textContent = '¡Correcto!';
+                feedbackEl.className = 'feedback ok text-center text-sm mt-1';
+                children.forEach(btn=>{ if((btn.getAttribute('data-choice')||btn.textContent).trim() === q.a){
+                    btn.classList.add('correctPulse','glow');
+                    createSubtleFX(btn);
+                }});
+                confettiBurst();
+                agregarADiccionario(q.slang, q.base);
+            } else { streak = 0; }
+            if(choice !== q.a){
+                feedbackEl.textContent = '❌ Incorrecto';
+                feedbackEl.className = 'feedback bad text-center text-sm mt-1';
+                children.forEach(btn=>{ 
+                    if((btn.getAttribute('data-choice')||btn.textContent).trim() === choice){ 
+                        btn.classList.add('errorShake', 'errorGlow');
+                        // Efecto de partículas de error
+                        createErrorFX(btn);
+                    } 
+                });
+                perderVida();
+            }
+            localStorage.setItem('malandrario.streak', String(streak));
+            setTimeout(next, 700);
+        }
+
+        function confettiBurst(){
+            const fx = document.getElementById('fx');
+            const colors = ['🟡','🟠','🔵','🟢','🟣','🔴','⭐'];
+            for(let i=0;i<12;i++){
+                const span = document.createElement('span');
+                span.className = 'confetti';
+                span.textContent = colors[Math.floor(Math.random()*colors.length)];
+                const x = Math.random()*100; const y = 40 + Math.random()*20;
+                const dx = (Math.random()*2-1)*80 + 'px';
+                const dy = (Math.random()*-1)*120 + 'px';
+                span.style.left = x + '%';
+                span.style.top = y + '%';
+                span.style.setProperty('--dx', dx);
+                span.style.setProperty('--dy', dy);
+                fx.appendChild(span);
+                setTimeout(()=> span.remove(), 800);
+            }
+        }
+
+        function createSubtleFX(target){
+            const rect = target.getBoundingClientRect();
+            const root = document.getElementById('game').getBoundingClientRect();
+            const fx = document.getElementById('fx');
+            const cx = rect.left - root.left + rect.width/2;
+            const cy = rect.top - root.top + rect.height/2;
+            // expanding ring
+            const ring = document.createElement('div');
+            ring.className = 'ring';
+            ring.style.left = cx + 'px';
+            ring.style.top = cy + 'px';
+            fx.appendChild(ring);
+            setTimeout(()=> ring.remove(), 650);
+            // floating check
+            const chk = document.createElement('div');
+            chk.className = 'check';
+            chk.style.left = cx + 'px';
+            chk.style.top = cy + 'px';
+            chk.textContent = '✔';
+            fx.appendChild(chk);
+            setTimeout(()=> chk.remove(), 600);
+            // tiny sparkles
+            for(let i=0;i<6;i++){
+                const sp = document.createElement('div');
+                sp.className = 'sparkle';
+                sp.style.left = cx + 'px';
+                sp.style.top = cy + 'px';
+                sp.style.setProperty('--dx', ((Math.random()*2-1)*40)+'px');
+                sp.style.setProperty('--dy', ((Math.random()*2-1)*40)+'px');
+                fx.appendChild(sp);
+                setTimeout(()=> sp.remove(), 700);
+            }
+        }
+
+        function createErrorFX(target){
+            const rect = target.getBoundingClientRect();
+            const root = document.getElementById('game').getBoundingClientRect();
+            const fx = document.getElementById('fx');
+            const cx = rect.left - root.left + rect.width/2;
+            const cy = rect.top - root.top + rect.height/2;
+            
+            // Partículas de error rojas
+            for(let i=0;i<8;i++){
+                const particle = document.createElement('div');
+                particle.style.position = 'absolute';
+                particle.style.width = '4px';
+                particle.style.height = '4px';
+                particle.style.background = '#EF4444';
+                particle.style.borderRadius = '50%';
+                particle.style.left = cx + 'px';
+                particle.style.top = cy + 'px';
+                particle.style.pointerEvents = 'none';
+                
+                const angle = (i / 8) * Math.PI * 2;
+                const distance = 30 + Math.random() * 20;
+                const dx = Math.cos(angle) * distance;
+                const dy = Math.sin(angle) * distance;
+                
+                particle.style.animation = `errorParticle 0.8s ease-out forwards`;
+                particle.style.setProperty('--dx', dx + 'px');
+                particle.style.setProperty('--dy', dy + 'px');
+                
+                fx.appendChild(particle);
+                setTimeout(()=> particle.remove(), 800);
+            }
+        }
+
+        function createEliminateFX(target){
+            const rect = target.getBoundingClientRect();
+            const root = document.getElementById('game').getBoundingClientRect();
+            const fx = document.getElementById('fx');
+            const cx = rect.left - root.left + rect.width/2;
+            const cy = rect.top - root.top + rect.height/2;
+            
+            // Partículas de eliminación más elegantes
+            for(let i=0;i<5;i++){
+                const particle = document.createElement('div');
+                particle.style.position = 'absolute';
+                particle.style.width = '4px';
+                particle.style.height = '4px';
+                particle.style.background = 'linear-gradient(45deg, #F59E0B, #FACC15)';
+                particle.style.borderRadius = '50%';
+                particle.style.left = cx + 'px';
+                particle.style.top = cy + 'px';
+                particle.style.pointerEvents = 'none';
+                particle.style.boxShadow = '0 0 6px rgba(245, 158, 11, 0.6)';
+                
+                const angle = (i / 5) * Math.PI * 2;
+                const distance = 20 + Math.random() * 10;
+                const dx = Math.cos(angle) * distance;
+                const dy = Math.sin(angle) * distance;
+                
+                particle.style.animation = `eliminateParticle 0.8s ease-out forwards`;
+                particle.style.setProperty('--dx', dx + 'px');
+                particle.style.setProperty('--dy', dy + 'px');
+                
+                fx.appendChild(particle);
+                setTimeout(()=> particle.remove(), 800);
+            }
+        }
+
+        function next(){
+            index++;
+            if(index >= QUESTIONS.length){ return victoriaNivel(); }
+            render();
+        }
+
+        function comprarPista(){
+            const q = QUESTIONS[index];
+            const children = Array.from(optionsEl.children);
+            const enabledIncorrectas = children.filter(b => b.getAttribute('data-choice') !== q.a && !b.disabled);
+            
+            if(metras < 1 || enabledIncorrectas.length <= 1){
+                updateMetrasUI();
+                return;
+            }
+            
+            metras -= 1;
+            updateMetrasUI();
+            eliminarUnaIncorrecta();
+        }
+        function eliminarUnaIncorrecta(){
+            const q = QUESTIONS[index];
+            const children = Array.from(optionsEl.children);
+            const enabledIncorrectas = children.filter(b => b.getAttribute('data-choice') !== q.a && !b.disabled);
+            
+            if(enabledIncorrectas.length > 0){
+                const pick = enabledIncorrectas[Math.floor(Math.random()*enabledIncorrectas.length)];
+                
+                // Marcar como eliminada
+                pick.disabled = true;
+                pick.style.pointerEvents = 'none';
+                
+                // Aplicar animaciones elegantes
+                pick.classList.add('eliminateSlide', 'eliminateFadeOut');
+                
+                // Cambiar el texto para mostrar que fue eliminada
+                const textSpan = pick.querySelector('span:last-child');
+                if(textSpan) {
+                    textSpan.textContent = '✨ ' + textSpan.textContent;
+                }
+                
+                // Efecto de partículas de eliminación
+                createEliminateFX(pick);
+                
+                // Después de la animación, mantener el estado final
+                setTimeout(() => {
+                    pick.style.opacity = '0.2';
+                    pick.style.transform = 'scale(0.8)';
+                    pick.style.filter = 'grayscale(100%) brightness(0.4)';
+                }, 800);
+            }
+            
+            // Actualizar estado del botón después de eliminar una opción
+            updateMetrasUI();
+        }
+
+        function victoriaNivel(){
+            barEl.style.width = '100%';
+            // MVP: recompensa simulada
+            metras += 5; updateMetrasUI();
+            document.getElementById('modalVictoria').style.display = 'flex';
+        }
+
+        function perderVida(){
+            vidas -= 1; if(vidas < 0) vidas = 0;
+            localStorage.setItem(VIDAS_KEY, String(vidas));
+            localStorage.setItem(VIDAS_TIMESTAMP_KEY, String(Date.now()));
+            vidasEl.textContent = String(vidas);
+            if(vidas === 0){ document.getElementById('modalDerrota').style.display = 'flex'; }
+        }
+
+        function continuarConMetras(){
+            if(metras < 2) return goHome();
+            metras -= 2; updateMetrasUI();
+            vidas = 1; vidasEl.textContent = '1';
+            document.getElementById('modalDerrota').style.display = 'none';
+        }
+
+        function siguienteNivel(){
+            nivelActual += 1; localStorage.setItem(NIVEL_KEY, String(nivelActual));
+            document.getElementById('modalVictoria').style.display = 'none';
+            // reiniciar estado para el siguiente nivel
+            index = 0; score = 0; vidas = 3; localStorage.setItem(VIDAS_KEY, '3');
+            QUESTIONS = buildLevelQuestions(nivelActual);
+            render();
+        }
+
+        function agregarADiccionario(slang, base){
+            try{
+                const key = 'malandrario.diccionario';
+                const raw = localStorage.getItem(key) || '{}';
+                const dict = JSON.parse(raw);
+                dict[slang] = base;
+                localStorage.setItem(key, JSON.stringify(dict));
+            }catch(e){}
+        }
+
+        // Helpers y listeners
+        function updateMetrasUI(){ 
+            metrasEl.textContent = String(metras); 
+            const q = QUESTIONS[index];
+            const children = Array.from(optionsEl.children);
+            const enabledIncorrectas = children.filter(b => b.getAttribute('data-choice') !== q.a && !b.disabled);
+            const totalHabilitadas = children.filter(b => !b.disabled).length;
+            
+            // Actualizar el costo en el botón de pista
+            const costSpan = btnPista.querySelector('span:last-child');
+            if(costSpan) {
+                costSpan.textContent = `1 💎`;
+            }
+            
+            // Desactivar si no hay metras, o si solo quedan 2 opciones totales (correcta + 1 incorrecta)
+            btnPista.disabled = metras < 1 || totalHabilitadas <= 2 || enabledIncorrectas.length <= 1;
+        }
+        if(btnPista){ btnPista.addEventListener('click', comprarPista); }
+
+        // Construir preguntas del nivel una vez que ya tenemos el nivelActual
+        let QUESTIONS = QUESTIONS_LEVEL_1.slice();
+
+        // inicializar HUD
+        nivelEl.textContent = String(nivelActual);
+        updateMetrasUI();
+        vidasEl.textContent = String(vidas);
+
+        render();
+    </script>
+</body>
+</html>
+
+

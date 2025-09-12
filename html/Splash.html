@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malandrário - Splash</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family:'Inter', sans-serif; background: linear-gradient(135deg, #FFFFFF, #FEF3C7, #FDE68A); min-height:100vh; }
+        .pixel-frame { height:850px; aspect-ratio:9/19.5; background: linear-gradient(135deg, #FFFFFF, #FEF3C7, #FDE68A); border-radius:40px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05); border:8px solid #000; position:relative; overflow:hidden; }
+        .camera-notch { position:absolute; top:10px; left:50%; transform:translateX(-50%); width:12px; height:12px; background-color:#555; border-radius:50%; border:1px solid #444; z-index:60; }
+        .logo-drop { animation: dropIn 700ms cubic-bezier(.2, .8, .2, 1) both; filter: drop-shadow(0 12px 18px rgba(0,0,0,.15)); }
+        @keyframes dropIn { 0%{ transform: translateY(-30px) scale(.9); opacity:0; } 100%{ transform: translateY(0) scale(1); opacity:1; } }
+        .progress { height: 14px; background: #E5E7EB; border-radius: 9999px; border: 2px solid #CBD5E1; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,.6); position: relative; }
+        .bar { height: 100%; width: 0%; background: repeating-linear-gradient( 45deg, #F59E0B 0 12px, #FDE68A 12px 24px ); transition: width .2s ease; box-shadow: inset 0 -1px 0 rgba(0,0,0,.06); }
+        .glow { position:absolute; inset:-20%; background: radial-gradient(circle at 30% 30%, rgba(250,204,21,.12), transparent 40%), radial-gradient(circle at 70% 70%, rgba(245,158,11,.12), transparent 40%); filter: blur(20px); animation: floatBg 8s ease-in-out infinite alternate; pointer-events:none; }
+        @keyframes floatBg { 0%{ transform: translateY(0) scale(1); } 100%{ transform: translateY(-10px) scale(1.02); } }
+        .fade-out { animation: fadeOut .5s ease forwards; }
+        @keyframes fadeOut { to { opacity: 0; transform: scale(.98); } }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen p-4">
+    <div id="root" class="w-full max-w-sm pixel-frame text-slate-900 relative flex flex-col items-center justify-center">
+        <div class="camera-notch"></div>
+        <div class="glow"></div>
+        <div class="flex flex-col items-center gap-6 px-8 -mt-10">
+            <img src="LOGO-PNG.png" alt="Logo Malandrário" class="w-44 h-44 object-contain rounded-2xl logo-drop"/>
+            <div class="w-full">
+                <div class="progress">
+                    <div id="bar" class="bar"></div>
+                </div>
+                <p id="label" class="mt-2 text-center text-sm font-semibold text-slate-600">Cargando… 0%</p>
+                <p class="mt-1 text-center text-xs text-slate-500">Calle, Cultura y Criollísimo</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulación de carga y salto a Inicio.html
+        (function simulateLoading(){
+            var bar = document.getElementById('bar');
+            var label = document.getElementById('label');
+            var root = document.getElementById('root');
+            var progress = 0;
+            var timer = setInterval(function(){
+                progress = Math.min(100, progress + Math.floor(Math.random()*12+6));
+                bar.style.width = progress + '%';
+                label.textContent = 'Cargando… ' + progress + '%';
+                if(progress >= 100){
+                    clearInterval(timer);
+                    root.classList.add('fade-out');
+                    setTimeout(function(){ window.location.href = 'Inicio.html'; }, 500);
+                }
+            }, 220);
+        })();
+    </script>
+</body>
+</html>
+
+
