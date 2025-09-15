@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '../ui/theme/colors';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -140,7 +141,7 @@ export const AdsCard: React.FC<AdsCardProps> = ({ visible, onClose, onPurchase, 
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.bottomSheet, animatedStyle]}>
           <LinearGradient
-            colors={['#FFFFFF', '#FEF3C7']}
+            colors={[colors.surface, colors.surfaceAlt]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.cardGradient}
@@ -159,14 +160,14 @@ export const AdsCard: React.FC<AdsCardProps> = ({ visible, onClose, onPurchase, 
                 {/* Premium Option - Más prominente */}
                 <TouchableOpacity style={styles.premiumOption} onPress={handlePurchase}>
                   <LinearGradient
-                    colors={['#F59E0B', '#D97706']}
+                    colors={[colors.secondary, colors.yellowDark]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.premiumGradient}
                   >
                     <View style={styles.optionContent}>
                       <View style={styles.premiumIconContainer}>
-                        <MaterialCommunityIcons name="crown" size={24} color="#FFFFFF" />
+                        <MaterialCommunityIcons name="crown" size={24} color={colors.onPrimary} />
                       </View>
                         <View style={styles.optionText}>
                           <Text style={styles.optionTitle}>¡Compra Premium, chamo!</Text>
@@ -174,7 +175,7 @@ export const AdsCard: React.FC<AdsCardProps> = ({ visible, onClose, onPurchase, 
                           <Text style={styles.optionPrice}>$4.99</Text>
                         </View>
                       <View style={styles.checkIconContainer}>
-                        <MaterialCommunityIcons name="check-circle" size={24} color="#FFFFFF" />
+                        <MaterialCommunityIcons name="check-circle" size={24} color={colors.onPrimary} />
                       </View>
                     </View>
                   </LinearGradient>
@@ -185,14 +186,14 @@ export const AdsCard: React.FC<AdsCardProps> = ({ visible, onClose, onPurchase, 
                   <View style={styles.freeGradient}>
                     <View style={styles.optionContent}>
                       <View style={styles.freeIconContainer}>
-                        <MaterialCommunityIcons name="play-circle" size={24} color="#1E3A8A" />
+                        <MaterialCommunityIcons name="play-circle" size={24} color={colors.primary} />
                       </View>
                         <View style={styles.optionText}>
                           <Text style={styles.freeOptionTitle}>Ver un anunciito</Text>
                           <Text style={styles.freeOptionSubtitle}>20 minuticos gratis, vale</Text>
                         </View>
                       <View style={styles.arrowIconContainer}>
-                        <MaterialCommunityIcons name="arrow-right" size={24} color="#1E3A8A" />
+                        <MaterialCommunityIcons name="arrow-right" size={24} color={colors.primary} />
                       </View>
                     </View>
                   </View>
@@ -234,14 +235,14 @@ const styles = StyleSheet.create({
     height: BOTTOM_SHEET_HEIGHT + 100, // Altura adicional para cubrir el espacio
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    shadowColor: '#1E3A8A',
+    shadowColor: colors.primary,
     shadowOpacity: 0.4,
     shadowRadius: 25,
     shadowOffset: { width: 0, height: -15 },
     elevation: 25,
   },
   handleIndicator: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: colors.secondary,
     width: 50,
     height: 5,
     borderRadius: 3,
@@ -264,14 +265,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1E3A8A',
+    color: colors.primary,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
     fontStyle: 'italic',
@@ -283,7 +284,7 @@ const styles = StyleSheet.create({
   premiumOption: {
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#F59E0B',
+    shadowColor: colors.secondary,
     shadowOpacity: 0.4,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -304,19 +305,19 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.onPrimary,
     marginBottom: 2,
   },
   optionSubtitle: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.85)',
     marginBottom: 4,
     fontWeight: '500',
   },
   optionPrice: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.onPrimary,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
@@ -340,8 +341,8 @@ const styles = StyleSheet.create({
   freeOption: {
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -356,7 +357,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.gray0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -364,19 +365,19 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.gray0,
     alignItems: 'center',
     justifyContent: 'center',
   },
   freeOptionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E3A8A',
+    color: colors.primary,
     marginBottom: 2,
   },
   freeOptionSubtitle: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
 });

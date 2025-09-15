@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, ImageBackground } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { LinearGradient } from 'expo-linear-gradient';
+// import { LinearGradient } from 'expo-linear-gradient';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import SplashScreen from './components/SplashScreen';
@@ -22,14 +22,13 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <LinearGradient 
-          colors={['#FFFFFF', '#FDE68A', '#F59E0B']} 
-          start={{ x: 0, y: 0 }} 
-          end={{ x: 0, y: 1 }} 
+        <ImageBackground
+          source={require('./assets/FONDO2.png')}
           style={styles.background}
+          resizeMode="cover"
         >
           {isLoading ? (
-            <SplashScreen onLoadingComplete={handleLoadingComplete} />
+            <SplashScreen onLoadingComplete={handleLoadingComplete} renderBackground={false} />
           ) : (
             <NavigationContainer>
               <Stack.Navigator 
@@ -73,7 +72,7 @@ export default function App() {
             </NavigationContainer>
           )}
           <StatusBar style="auto" />
-        </LinearGradient>
+        </ImageBackground>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

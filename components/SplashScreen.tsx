@@ -1,178 +1,117 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   Image,
   StyleSheet,
-  Animated,
   Dimensions,
   StatusBar,
+  ImageBackground,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Animated } from 'react-native';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface SplashScreenProps {
   onLoadingComplete: () => void;
+  renderBackground?: boolean;
 }
 
-export default function SplashScreen({ onLoadingComplete }: SplashScreenProps) {
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const logoAnim = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+export default function SplashScreen({ onLoadingComplete, renderBackground = true }: SplashScreenProps) {
   const [progress, setProgress] = React.useState(0);
+  const fadeAnim = React.useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Animación de entrada del logo
-    Animated.timing(logoAnim, {
-      toValue: 1,
-      duration: 700,
-      useNativeDriver: true,
-    }).start();
+    // Simular carga real ~2.5s con progreso suave
+    const durationMs = 2500;
+    let rafId: number | null = null;
+    const start = Date.now();
 
-    // Animación de flotación del glow
-    const glowAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowAnim, {
+    const loop = () => {
+      const elapsed = Date.now() - start;
+      const pct = Math.min(100, Math.round((elapsed / durationMs) * 100));
+      setProgress(pct);
+      if (elapsed < durationMs) {
+        rafId = requestAnimationFrame(loop);
+      } else {
+        setProgress(100);
+        Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: 4000,
+          duration: 300,
           useNativeDriver: true,
-        }),
-      ])
-    );
-    glowAnimation.start();
-
-    // Simulación de carga más simple y confiable
-    let currentProgress = 0;
-    const loadingInterval = setInterval(() => {
-      const increment = Math.floor(Math.random() * 15 + 8);
-      currentProgress = Math.min(100, currentProgress + increment);
-      
-      setProgress(currentProgress);
-      
-      Animated.timing(progressAnim, {
-        toValue: currentProgress,
-        duration: 200,
-        useNativeDriver: false,
-      }).start();
-
-      if (currentProgress >= 100) {
-        clearInterval(loadingInterval);
-        // Pequeño delay antes del fade out
-        setTimeout(() => {
-          Animated.timing(fadeAnim, {
-            toValue: 0,
-            duration: 500,
-            useNativeDriver: true,
-          }).start(() => {
-            onLoadingComplete();
-          });
-        }, 300);
+        }).start(() => onLoadingComplete());
       }
-    }, 200);
-
-    // Timeout de seguridad - máximo 5 segundos
-    const safetyTimeout = setTimeout(() => {
-      console.log('Splash screen timeout - forcing completion');
-      onLoadingComplete();
-    }, 5000);
+    };
+    rafId = requestAnimationFrame(loop);
 
     return () => {
-      clearInterval(loadingInterval);
-      clearTimeout(safetyTimeout);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [onLoadingComplete]);
 
-  const logoScale = logoAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.9, 1],
-  });
-
-  const logoTranslateY = logoAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-30, 0],
-  });
-
-  const glowTranslateY = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -10],
-  });
-
-  const glowScale = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.02],
-  });
-
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 100],
-    outputRange: ['0%', '100%'],
-  });
+  const progressWidth = `${progress}%`;
 
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      
-      <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-        {/* Fondo: sin overlay/gradiente. Hereda el fondo del contenedor padre. */}
-        
-        {/* Efecto glow de fondo */}
-        <Animated.View
-          style={[
-            styles.glow,
-            {
-              transform: [
-                { translateY: glowTranslateY },
-                { scale: glowScale },
-              ],
-            },
-          ]}
-        />
-        
-        {/* Contenido principal */}
-        <View style={styles.content}>
-          <Animated.View
-            style={[
-              styles.logoContainer,
-              {
-                transform: [
-                  { translateY: logoTranslateY },
-                  { scale: logoScale },
-                ],
-              },
-            ]}
-          >
-            <Image
-              source={require('../assets/LOGO-PNG.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </Animated.View>
-          
-          <View style={styles.progressContainer}>
-            <View style={styles.progressTrack}>
-              <Animated.View
-                style={[
-                  styles.progressBar,
-                  { width: progressWidth },
-                ]}
+      {renderBackground ? (
+        <ImageBackground
+          source={require('../assets/FONDO2.png')}
+          style={styles.container}
+          resizeMode="cover"
+        >
+          <LinearGradient
+            colors={["rgba(255, 248, 225, 0.85)", "rgba(255, 248, 225, 0.95)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.scrim}
+          />
+
+          <Animated.View style={[styles.content, { opacity: fadeAnim }] }>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../assets/MALANDRARIO SIN FONDO.png')}
+                style={styles.logo}
+                resizeMode="contain"
               />
             </View>
-            <Text style={styles.progressLabel}>
-              Cargando… {progress}%
-            </Text>
-            <Text style={styles.subtitle}>
-              Calle, Cultura y Criollísimo
-            </Text>
-          </View>
-        </View>
-      </Animated.View>
+            <View style={styles.progressContainer}>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressBar, { width: `${progress}%` as any }]} />
+              </View>
+              <Text style={styles.progressLabel}>Cargando… {progress}%</Text>
+              <Text style={styles.subtitle}>Calle, Cultura y Criollísimo</Text>
+            </View>
+          </Animated.View>
+        </ImageBackground>
+      ) : (
+        <>
+          <LinearGradient
+            colors={["rgba(255, 248, 225, 0.85)", "rgba(255, 248, 225, 0.95)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.scrim}
+          />
+          <Animated.View style={[styles.contentOverlay, { opacity: fadeAnim }] }>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../assets/MALANDRARIO SIN FONDO.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+            <View style={styles.progressContainer}>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressBar, { width: `${progress}%` as any }]} />
+              </View>
+              <Text style={styles.progressLabel}>Cargando… {progress}%</Text>
+              <Text style={styles.subtitle}>Calle, Cultura y Criollísimo</Text>
+            </View>
+          </Animated.View>
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -185,7 +124,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
+    height: '100%',
   },
+  scrim: { ...StyleSheet.absoluteFillObject },
   glow: {
     position: 'absolute',
     top: -100,
@@ -202,22 +144,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     width: '100%',
   },
+  contentOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
   logoContainer: {
     marginBottom: 24,
   },
   logo: {
-    width: 200,
-    height: 200,
-    borderRadius: 20,
+    width: 460,
+    height: 220,
   },
   progressContainer: {
     width: '100%',
   },
   progressTrack: {
-    height: 14,
+    height: 22,
     backgroundColor: '#E5E7EB',
     borderRadius: 9999,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#CBD5E1',
     overflow: 'hidden',
     shadowColor: '#fff',

@@ -8,12 +8,14 @@ import {
   Dimensions,
   Alert,
   StatusBar,
+  ImageBackground,
 } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+import { colors } from '../../theme/colors';
 
 interface Question {
   q: string;
@@ -104,103 +106,165 @@ export const JergaBasicaScreen: React.FC = () => {
 
   // Animaciones
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const optionAnimations = useRef<Animated.Value[]>([]).current;
   const feedbackAnim = useRef(new Animated.Value(0)).current;
+  const questionCardAnim = useRef(new Animated.Value(0)).current;
+  const optionsContainerAnim = useRef(new Animated.Value(0)).current;
+  const hudAnim = useRef(new Animated.Value(0)).current;
+  const victoryAnim = useRef(new Animated.Value(0)).current;
+  const defeatAnim = useRef(new Animated.Value(0)).current;
 
   const questions = QUESTIONS_LEVEL_1;
 
   useEffect(() => {
-    // Animación de entrada más suave
+    // Animación de entrada coordinada y fluida
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 400,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 300,
+        duration: 400,
         useNativeDriver: true,
       }),
       Animated.timing(scaleAnim, {
         toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(hudAnim, {
+        toValue: 1,
         duration: 300,
+        delay: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(questionCardAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(optionsContainerAnim, {
+        toValue: 1,
+        duration: 600,
+        delay: 300,
         useNativeDriver: true,
       }),
     ]).start();
+  }, []);
 
-    // Actualizar progreso
+  useEffect(() => {
+    // Actualizar progreso basado en preguntas respondidas
+    const progressPercentage = (currentQuestion / questions.length) * 100;
+    
     Animated.timing(progressAnim, {
-      toValue: (currentQuestion / questions.length) * 100,
+      toValue: progressPercentage,
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [currentQuestion]);
 
-  // Animación de entrada inicial
-  useEffect(() => {
-    // Resetear valores iniciales para entrada suave
-    fadeAnim.setValue(0);
-    slideAnim.setValue(30);
-    scaleAnim.setValue(0.95);
-  }, []);
+    // Animación de transición entre preguntas
+    if (currentQuestion > 0) {
+      questionCardAnim.setValue(0);
+      optionsContainerAnim.setValue(0);
+      
+      Animated.parallel([
+        Animated.timing(questionCardAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(optionsContainerAnim, {
+          toValue: 1,
+          duration: 500,
+          delay: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [currentQuestion, questions.length]);
+
 
   const handleAnswer = (answer: string, index: number) => {
     if (disabledOptions || eliminatedOptions.has(index)) return;
 
     setSelectedAnswer(answer);
     setDisabledOptions(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
+    
     const question = questions[currentQuestion];
     const correct = answer === question.a;
+
+    // Feedback háptico diferenciado
+    if (correct) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
 
     setIsCorrect(correct);
     setShowFeedback(true);
 
-    // Animación de feedback
+    // Actualizar progreso inmediatamente al responder
+    const progressPercentage = ((currentQuestion + 1) / questions.length) * 100;
+    Animated.timing(progressAnim, {
+      toValue: progressPercentage,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+
+    // Animación de feedback mejorada
     Animated.timing(feedbackAnim, {
       toValue: 1,
-      duration: 300,
+      duration: 400,
       useNativeDriver: true,
     }).start();
 
     if (correct) {
       setScore(score + 1);
       setStreak(streak + 1);
-      // Efecto de acierto
+      
+      // Efecto de acierto más dramático
       if (optionAnimations[index]) {
         Animated.sequence([
           Animated.timing(optionAnimations[index], {
-            toValue: 1.05,
-            duration: 150,
+            toValue: 1.1,
+            duration: 200,
             useNativeDriver: true,
           }),
           Animated.timing(optionAnimations[index], {
             toValue: 1,
-            duration: 150,
+            duration: 200,
             useNativeDriver: true,
           }),
         ]).start();
+      }
+
+      // Animación de celebración para streak
+      if (streak >= 2) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     } else {
       setStreak(0);
       setVidas(vidas - 1);
       
-      // Efecto de error
+      // Efecto de error más pronunciado
       if (optionAnimations[index]) {
         Animated.sequence([
           Animated.timing(optionAnimations[index], {
-            toValue: 0.95,
-            duration: 100,
+            toValue: 0.9,
+            duration: 150,
             useNativeDriver: true,
           }),
           Animated.timing(optionAnimations[index], {
             toValue: 1,
-            duration: 100,
+            duration: 150,
             useNativeDriver: true,
           }),
         ]).start();
@@ -215,12 +279,18 @@ export const JergaBasicaScreen: React.FC = () => {
       feedbackAnim.setValue(0);
       
       if (currentQuestion + 1 >= questions.length) {
-        // Nivel completado
+        // Nivel completado - mostrar modal de victoria
+        Animated.timing(victoryAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }).start();
         setShowVictoryModal(true);
       } else {
+        // Avanzar a la siguiente pregunta
         setCurrentQuestion(currentQuestion + 1);
       }
-    }, 1500);
+    }, 1800);
   };
 
   const handleHint = () => {
@@ -239,7 +309,25 @@ export const JergaBasicaScreen: React.FC = () => {
     setEliminatedOptions(new Set([...eliminatedOptions, optionToEliminate]));
     setMetras(metras - 1);
     
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Feedback háptico y visual mejorado
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    // Animación de eliminación de opción
+    if (optionAnimations[optionToEliminate]) {
+      Animated.sequence([
+        Animated.timing(optionAnimations[optionToEliminate], {
+          toValue: 0.8,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(optionAnimations[optionToEliminate], {
+          toValue: 0.3,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
   };
 
   const resetGame = () => {
@@ -296,6 +384,12 @@ export const JergaBasicaScreen: React.FC = () => {
 
   useEffect(() => {
     if (vidas <= 0) {
+      // Animación de derrota
+      Animated.timing(defeatAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
       setShowDefeatModal(true);
     }
   }, [vidas]);
@@ -315,14 +409,29 @@ export const JergaBasicaScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
-      <View style={styles.background}>
+      <ImageBackground
+        source={require('../../../assets/FONDO2.png')}
+        resizeMode="cover"
+        style={styles.background}
+      >
+        <LinearGradient
+          colors={["rgba(255, 248, 225, 0.85)", "rgba(255, 248, 225, 0.95)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.scrim}
+        />
         {/* HUD Superior */}
         <Animated.View 
           style={[
             styles.hudContainer,
             { 
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }] 
+              opacity: hudAnim,
+              transform: [
+                { translateY: hudAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-20, 0]
+                })}
+              ]
             }
           ]}
         >
@@ -331,7 +440,7 @@ export const JergaBasicaScreen: React.FC = () => {
               colors={['#FFFFFF', '#FEF3C7']}
               style={styles.lobbyButtonGradient}
             >
-              <Text style={styles.lobbyButtonEmoji}>🎮</Text>
+              <Ionicons name="home" size={18} color="#0F172A" />
               <Text style={styles.lobbyButtonText}>Lobby</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -339,21 +448,21 @@ export const JergaBasicaScreen: React.FC = () => {
           <View style={styles.hudStats}>
             <View style={styles.statChip}>
               <LinearGradient colors={['#FEF2F2', '#FECACA']} style={styles.statChipGradient}>
-                <Text style={styles.statEmoji}>❤️</Text>
+                <Ionicons name="heart" size={18} color="#DC2626" />
                 <Text style={styles.statText}>{vidas}</Text>
               </LinearGradient>
             </View>
             
             <View style={styles.statChip}>
               <LinearGradient colors={['#FFF7ED', '#FED7AA']} style={styles.statChipGradient}>
-                <Text style={styles.statEmoji}>🔥</Text>
+                <Ionicons name="flame" size={18} color="#F97316" />
                 <Text style={styles.statText}>{streak}</Text>
               </LinearGradient>
             </View>
             
             <View style={styles.statChip}>
               <LinearGradient colors={['#EFF6FF', '#BFDBFE']} style={styles.statChipGradient}>
-                <Text style={styles.statEmoji}>💎</Text>
+                <Ionicons name="diamond" size={18} color="#2563EB" />
                 <Text style={styles.statText}>{metras}</Text>
               </LinearGradient>
             </View>
@@ -366,15 +475,25 @@ export const JergaBasicaScreen: React.FC = () => {
             styles.contentContainer,
             { 
               opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }, { scale: scaleAnim }] 
+              transform: [
+                { translateY: slideAnim },
+                { scale: scaleAnim }
+              ]
             }
           ]}
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>
-              Traduce la Jerga · Nivel {nivel}
-            </Text>
+            <LinearGradient
+              colors={[colors.yellowPrimary, colors.white]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.titleGradient}
+            >
+              <Text style={styles.title}>
+                Traduce la Jerga · Nivel {nivel}
+              </Text>
+            </LinearGradient>
             <Text style={styles.questionCounter}>
               Pregunta {currentQuestion + 1}/{questions.length}
             </Text>
@@ -389,14 +508,37 @@ export const JergaBasicaScreen: React.FC = () => {
               <Animated.View 
                 style={[
                   styles.progressFill,
-                  { width: progressAnim }
+                  { 
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 100],
+                      outputRange: ['0%', '100%'],
+                      extrapolate: 'clamp',
+                    })
+                  }
                 ]} 
               />
             </View>
           </View>
 
           {/* Tarjeta de Pregunta */}
-          <View style={styles.questionCard}>
+          <Animated.View 
+            style={[
+              styles.questionCard,
+              {
+                opacity: questionCardAnim,
+                transform: [
+                  { translateY: questionCardAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0]
+                  })},
+                  { scale: questionCardAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.95, 1]
+                  })}
+                ]
+              }
+            ]}
+          >
             <LinearGradient
               colors={['#FFFFFF', '#FEF3C7']}
               style={styles.questionCardGradient}
@@ -407,22 +549,50 @@ export const JergaBasicaScreen: React.FC = () => {
                 <Animated.View 
                   style={[
                     styles.feedbackContainer,
-                    { opacity: feedbackAnim }
+                    { 
+                      opacity: feedbackAnim,
+                      transform: [
+                        { scale: feedbackAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.8, 1]
+                        })}
+                      ]
+                    }
                   ]}
                 >
-                  <Text style={[
-                    styles.feedbackText,
-                    { color: isCorrect ? '#16A34A' : '#DC2626' }
-                  ]}>
-                    {isCorrect ? '¡Correcto!' : '❌ Incorrecto'}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    {isCorrect ? (
+                      <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+                    ) : (
+                      <Ionicons name="close-circle" size={18} color="#DC2626" />
+                    )}
+                    <Text style={[
+                      styles.feedbackText,
+                      { color: isCorrect ? '#16A34A' : '#DC2626' }
+                    ]}>
+                      {isCorrect ? '¡Correcto!' : 'Incorrecto'}
+                    </Text>
+                  </View>
                 </Animated.View>
               )}
             </LinearGradient>
-          </View>
+          </Animated.View>
 
           {/* Opciones */}
-          <View style={styles.optionsContainer}>
+          <Animated.View 
+            style={[
+              styles.optionsContainer,
+              {
+                opacity: optionsContainerAnim,
+                transform: [
+                  { translateY: optionsContainerAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [30, 0]
+                  })}
+                ]
+              }
+            ]}
+          >
             {currentQ.choices.map((choice, index) => {
               const isSelected = selectedAnswer === choice;
               const isCorrectAnswer = choice === currentQ.a;
@@ -469,11 +639,14 @@ export const JergaBasicaScreen: React.FC = () => {
                             {String.fromCharCode(65 + index)}
                           </Text>
                         </View>
+                        {isEliminated && (
+                          <MaterialCommunityIcons name="star-four-points" size={16} color="#9CA3AF" />
+                        )}
                         <Text style={[
                           styles.optionText,
                           isEliminated && styles.optionEliminatedText
                         ]}>
-                          {isEliminated ? '✨ ' + choice : choice}
+                          {choice}
                         </Text>
                       </View>
                     </LinearGradient>
@@ -481,7 +654,7 @@ export const JergaBasicaScreen: React.FC = () => {
                 </Animated.View>
               );
             })}
-          </View>
+          </Animated.View>
 
           {/* Botón de Pista */}
           <TouchableOpacity 
@@ -501,11 +674,7 @@ export const JergaBasicaScreen: React.FC = () => {
               }
               style={styles.hintButtonGradient}
             >
-              <MaterialCommunityIcons 
-                name="lightbulb-on" 
-                size={20} 
-                color={metras < 1 ? '#9CA3AF' : '#0F172A'} 
-              />
+              <Ionicons name="bulb" size={20} color={metras < 1 ? '#9CA3AF' : '#FFFFFF'} />
               <Text style={[
                 styles.hintButtonText,
                 metras < 1 && styles.hintButtonDisabledText
@@ -516,22 +685,46 @@ export const JergaBasicaScreen: React.FC = () => {
                 styles.hintCost,
                 metras < 1 && styles.hintCostDisabled
               ]}>
-                <Text style={[
-                  styles.hintCostText,
-                  metras < 1 && styles.hintCostDisabledText
-                ]}>
-                  1 💎
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={[
+                    styles.hintCostText,
+                    metras < 1 && styles.hintCostDisabledText
+                  ]}>
+                    1
+                  </Text>
+                  <Ionicons name="diamond" size={14} color={metras < 1 ? '#9CA3AF' : '#0F172A'} />
+                </View>
               </View>
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
-      </View>
+      </ImageBackground>
 
       {/* Modal de Victoria */}
       {showVictoryModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modal}>
+        <Animated.View 
+          style={[
+            styles.modalOverlay,
+            { opacity: victoryAnim }
+          ]}
+        >
+          <Animated.View 
+            style={[
+              styles.modal,
+              {
+                transform: [
+                  { scale: victoryAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.8, 1]
+                  })},
+                  { translateY: victoryAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [50, 0]
+                  })}
+                ]
+              }
+            ]}
+          >
             <Text style={styles.modalTitle}>¡Nivel completado!</Text>
             <Text style={styles.modalText}>
               Ganaste <Text style={styles.modalHighlight}>5 Metras</Text>. 
@@ -545,14 +738,35 @@ export const JergaBasicaScreen: React.FC = () => {
                 <Text style={styles.modalButtonText}>Siguiente nivel</Text>
               </LinearGradient>
             </TouchableOpacity>
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       )}
 
       {/* Modal de Derrota */}
       {showDefeatModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modal}>
+        <Animated.View 
+          style={[
+            styles.modalOverlay,
+            { opacity: defeatAnim }
+          ]}
+        >
+          <Animated.View 
+            style={[
+              styles.modal,
+              {
+                transform: [
+                  { scale: defeatAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.8, 1]
+                  })},
+                  { translateY: defeatAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [50, 0]
+                  })}
+                ]
+              }
+            ]}
+          >
             <Text style={styles.modalTitle}>Te quedaste sin vidas</Text>
             <Text style={styles.modalText}>
               Puedes continuar este nivel con 1 vida pagando 2 Metras.
@@ -566,7 +780,11 @@ export const JergaBasicaScreen: React.FC = () => {
                   colors={['#FACC15', '#F59E0B']}
                   style={styles.modalButtonGradient}
                 >
-                  <Text style={styles.modalButtonText}>Continuar (2 💎)</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.modalButtonText}>Continuar (2</Text>
+                    <Ionicons name="diamond" size={16} color="#0F172A" />
+                    <Text style={styles.modalButtonText}>)</Text>
+                  </View>
                 </LinearGradient>
               </TouchableOpacity>
               
@@ -577,8 +795,8 @@ export const JergaBasicaScreen: React.FC = () => {
                 <Text style={styles.modalButtonSecondaryText}>Salir</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
@@ -589,12 +807,13 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: colors.background,
   },
   background: {
     flex: 1,
     backgroundColor: 'transparent',
   },
+  scrim: { ...StyleSheet.absoluteFillObject },
   hudContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -606,8 +825,8 @@ const styles = StyleSheet.create({
   lobbyButton: {
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.05,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 2 },
@@ -627,7 +846,7 @@ const styles = StyleSheet.create({
   lobbyButtonText: {
     fontWeight: 'bold',
     fontSize: 14,
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   hudStats: {
     flexDirection: 'row',
@@ -636,8 +855,8 @@ const styles = StyleSheet.create({
   statChip: {
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.05,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 2 },
@@ -651,13 +870,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
   },
-  statEmoji: {
-    fontSize: 18,
-  },
   statText: {
     fontWeight: 'bold',
     fontSize: 14,
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   contentContainer: {
     flex: 1,
@@ -668,20 +884,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  titleGradient: {
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
   title: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   questionCounter: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -690,10 +912,10 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 12,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.grayLight,
     borderRadius: 9999,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   progressFill: {
@@ -705,8 +927,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 6 },
@@ -719,7 +941,7 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   feedbackContainer: {
@@ -737,8 +959,8 @@ const styles = StyleSheet.create({
   optionButton: {
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 6 },
@@ -757,19 +979,19 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#E0E7FF',
+    backgroundColor: colors.blueLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   optionKeyText: {
     fontWeight: '900',
-    color: '#3730A3',
+    color: colors.primary,
     fontSize: 14,
   },
   optionText: {
     flex: 1,
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.textPrimary,
     fontSize: 14,
   },
   optionCorrect: {
@@ -779,23 +1001,23 @@ const styles = StyleSheet.create({
     borderColor: '#EF4444',
   },
   optionEliminated: {
-    borderColor: '#9CA3AF',
+    borderColor: colors.gray,
   },
   optionEliminatedText: {
-    color: '#9CA3AF',
+    color: colors.gray,
   },
   hintButton: {
     borderRadius: 16,
-    borderWidth: 3,
-    borderColor: '#FACC15',
-    shadowColor: '#F59E0B',
+    borderWidth: 2,
+    borderColor: colors.secondary,
+    shadowColor: colors.secondary,
     shadowOpacity: 0.3,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
   hintButtonDisabled: {
-    borderColor: '#D1D5DB',
+    borderColor: colors.grayLight,
     shadowOpacity: 0.1,
     elevation: 2,
   },
@@ -810,11 +1032,11 @@ const styles = StyleSheet.create({
   },
   hintButtonText: {
     fontWeight: '800',
-    color: '#0F172A',
+    color: colors.onPrimary,
     fontSize: 16,
   },
   hintButtonDisabledText: {
-    color: '#9CA3AF',
+    color: colors.gray,
   },
   hintCost: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
@@ -828,10 +1050,10 @@ const styles = StyleSheet.create({
   hintCostText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#0F172A',
+    color: colors.textPrimary,
   },
   hintCostDisabledText: {
-    color: '#9CA3AF',
+    color: colors.gray,
   },
   modalOverlay: {
     position: 'absolute',
@@ -839,19 +1061,19 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(10, 15, 25, 0.55)',
+    backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 60,
   },
   modal: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 3,
-    borderColor: '#E2E8F0',
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.border,
     borderRadius: 20,
     padding: 18,
     width: '85%',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.08,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 16 },
@@ -860,28 +1082,28 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontWeight: '900',
     fontSize: 18,
-    color: '#0F172A',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 6,
   },
   modalText: {
-    color: '#64748B',
+    color: colors.textSecondary,
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 12,
   },
   modalHighlight: {
     fontWeight: 'bold',
-    color: '#F59E0B',
+    color: colors.secondary,
   },
   modalButtons: {
     gap: 8,
   },
   modalButton: {
     borderRadius: 16,
-    borderWidth: 3,
-    borderColor: '#FDE68A',
-    shadowColor: '#D97706',
+    borderWidth: 2,
+    borderColor: colors.secondary,
+    shadowColor: colors.secondary,
     shadowOpacity: 0.3,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 6 },
@@ -895,20 +1117,20 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     fontWeight: '900',
-    color: '#0F172A',
+    color: colors.textPrimary,
     fontSize: 16,
   },
   modalButtonSecondary: {
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     paddingVertical: 12,
     paddingHorizontal: 16,
     alignItems: 'center',
   },
   modalButtonSecondaryText: {
     fontWeight: '600',
-    color: '#374151',
+    color: colors.textSecondary,
     fontSize: 16,
   },
 });
