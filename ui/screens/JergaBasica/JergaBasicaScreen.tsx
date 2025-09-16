@@ -9,83 +9,25 @@ import {
   Alert,
   StatusBar,
   ImageBackground,
+  ActivityIndicator,
 } from 'react-native';
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../../theme/colors';
+import HudBar from './components/HudBar';
+import Header from './components/Header';
+import ProgressBar from './components/ProgressBar';
+import QuestionCard from './components/QuestionCard';
+import OptionsList, { OptionItem } from './components/OptionsList';
+import HintButton from './components/HintButton';
+import { VictoryModal, DefeatModal } from './components/Modals';
+import SuccessOverlay from './components/SuccessOverlay';
+import InputKeyboard, { InputKeyboardRef } from './components/InputKeyboard';
+import InputActionsRow from './components/InputActionsRow';
 
-interface Question {
-  q: string;
-  choices: string[];
-  a: string;
-  hint: string;
-}
-
-const QUESTIONS_LEVEL_1: Question[] = [
-  {
-    q: "¿Cómo se dice 'muchacho' o 'muchacha' en la jerga venezolana de barrio?",
-    choices: ["Chamín", "Chamo", "Pibe", "Convive"],
-    a: "Convive",
-    hint: "La palabra empieza con 'Ch'."
-  },
-  {
-    q: "Si un chamo se queda sin trabajo y no tiene ni un bolívar para pagar la renta, ¿en qué situación está?",
-    choices: ["En el limbo", "En la cuerda floja", "En la olla", "En el aire"],
-    a: "En la olla",
-    hint: "Es un dicho que se usa cuando estás en aprietos."
-  },
-  {
-    q: "¿Qué significa 'Echar los perros'?",
-    choices: ["Estar con tu perro o pasearlo", "Coquetear o seducir a alguien", "Tener mala suerte", "Regalarle un perro a alguien"],
-    a: "Coquetear o seducir a alguien",
-    hint: "Esta frase tiene que ver con el romance."
-  },
-  {
-    q: "En la jerga, ¿qué es un 'coroto'?",
-    choices: ["Un tipo de comida exótica", "Un animal de la calle", "Un objeto o una cosa cualquiera que no tiene mucho valor", "Una persona muy perezosa"],
-    a: "Un objeto o una cosa cualquiera que no tiene mucho valor",
-    hint: "Todos tenemos corotos en la casa."
-  },
-  {
-    q: "¿Qué significa 'darle al coco'?",
-    choices: ["Golpearse la cabeza", "Pensar o analizar algo intensamente", "Comer un coco", "Darse un golpe"],
-    a: "Pensar o analizar algo intensamente",
-    hint: "Es algo que todos hacemos cuando estudiamos."
-  },
-  {
-    q: "¿Qué significa 'burda de'?",
-    choices: ["Algo muy feo", "Una gran cantidad o mucho", "Una palabra sin sentido", "Algo muy bueno"],
-    a: "Una gran cantidad o mucho",
-    hint: "Se usa para describir la cantidad de algo."
-  },
-  {
-    q: "En la jerga, ¿qué significa la frase 'Echar una vaina'?",
-    choices: ["Tener una discusión o pelear con alguien", "Echar algo en un recipiente", "Hablar de algo sin importancia", "Comer una comida tradicional"],
-    a: "Tener una discusión o pelear con alguien",
-    hint: "Se usa para describir una acción de conflicto."
-  },
-  {
-    q: "¿Qué significa 'Chevere'?",
-    choices: ["Algo viejo o pasado de moda", "Algo muy bueno, genial o de calidad", "Estar cansado", "Estar triste"],
-    a: "Algo muy bueno, genial o de calidad",
-    hint: "Es un adjetivo para describir algo que te gusta mucho."
-  },
-  {
-    q: "Llegas a la casa y tu vecina te dice: '¡Ponte las pilas que en la esquina se armó un brollo!'. ¿Qué te está avisando?",
-    choices: ["Que hay una fiesta con mucha gente", "Que hay un problema, un chisme o un escándalo en la calle", "Que alguien está borracho", "Que hay mucho tráfico"],
-    a: "Que hay un problema, un chisme o un escándalo en la calle",
-    hint: "Se usa mucho en las telenovelas y en los grupos de WhatsApp."
-  },
-  {
-    q: "Cuando a alguien le llega una gran cantidad de dinero de forma inesperada, ¿qué dirían los panas que le cayó?",
-    choices: ["Un maná", "Una guayaba", "Un palo", "Una patilla"],
-    a: "Un palo",
-    hint: "Es algo que todos quisiéramos que nos caiga."
-  }
-];
+import { QUESTIONS_LEVEL_1, Question } from './data/questions';
 
 export const JergaBasicaScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -116,46 +58,96 @@ export const JergaBasicaScreen: React.FC = () => {
   const hudAnim = useRef(new Animated.Value(0)).current;
   const victoryAnim = useRef(new Animated.Value(0)).current;
   const defeatAnim = useRef(new Animated.Value(0)).current;
+  const titleGradientAnim = useRef(new Animated.Value(0)).current;
+  const lastQuestionCueAnim = useRef(new Animated.Value(0)).current;
+  const successBurstAnim = useRef(new Animated.Value(0)).current;
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState<boolean>(false);
+  const [imageLoaded, setImageLoaded] = useState<boolean>(false);
+  const kbRef = useRef<InputKeyboardRef>(null);
 
   const questions = QUESTIONS_LEVEL_1;
 
+  // Timeout de seguridad por si onLoad no se dispara
   useEffect(() => {
-    // Animación de entrada coordinada y fluida
+    const safetyTimeout = setTimeout(() => {
+      if (!imageLoaded) {
+        setImageLoaded(true);
+      }
+    }, 5000); // 5 segundos de timeout de seguridad
+
+    return () => clearTimeout(safetyTimeout);
+  }, [imageLoaded]);
+
+  const normalize = (s: string): string => s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  useEffect(() => {
+    // Animación de entrada más dramática y coordinada
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 400,
+        duration: 600,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 400,
+        duration: 600,
         useNativeDriver: true,
       }),
       Animated.timing(scaleAnim, {
         toValue: 1,
-        duration: 400,
+        duration: 600,
         useNativeDriver: true,
       }),
       Animated.timing(hudAnim, {
-        toValue: 1,
-        duration: 300,
-        delay: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(questionCardAnim, {
         toValue: 1,
         duration: 500,
         delay: 200,
         useNativeDriver: true,
       }),
+      Animated.timing(questionCardAnim, {
+        toValue: 1,
+        duration: 700,
+        delay: 400,
+        useNativeDriver: true,
+      }),
       Animated.timing(optionsContainerAnim, {
         toValue: 1,
-        duration: 600,
-        delay: 300,
+        duration: 800,
+        delay: 600,
         useNativeDriver: true,
       }),
     ]).start();
+
+    // Degradado del título en movimiento continuo
+    const loopGradient = Animated.loop(
+      Animated.sequence([
+        Animated.timing(titleGradientAnim, {
+          toValue: 1,
+          duration: 2800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(titleGradientAnim, {
+          toValue: 0,
+          duration: 2800,
+          useNativeDriver: true,
+        })
+      ])
+    );
+    loopGradient.start();
+
+    return () => {
+      try {
+        loopGradient.stop();
+      } catch (error) {
+        // Ignorar errores de stopTracking
+        console.warn('Animation stop error:', error);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -189,15 +181,57 @@ export const JergaBasicaScreen: React.FC = () => {
     }
   }, [currentQuestion, questions.length]);
 
+  // Cue especial al llegar a la última pregunta (persistente mientras sea la última)
+  const lastCueLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  useEffect(() => {
+    const isLast: boolean = currentQuestion === questions.length - 1;
+    if (isLast) {
+      lastQuestionCueAnim.setValue(0);
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(lastQuestionCueAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(lastQuestionCueAnim, {
+            toValue: 0.3,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      lastCueLoopRef.current = loop;
+      loop.start();
+    } else {
+      try {
+        lastCueLoopRef.current?.stop?.();
+      } catch (error) {
+        console.warn('Animation stop error:', error);
+      }
+      lastQuestionCueAnim.setValue(0);
+    }
+    return () => {
+      try {
+        lastCueLoopRef.current?.stop?.();
+      } catch (error) {
+        console.warn('Animation stop error:', error);
+      }
+    };
+  }, [currentQuestion, questions.length, lastQuestionCueAnim]);
+
 
   const handleAnswer = (answer: string, index: number) => {
-    if (disabledOptions || eliminatedOptions.has(index)) return;
+    if (disabledOptions || (index >= 0 && eliminatedOptions.has(index))) return;
 
     setSelectedAnswer(answer);
     setDisabledOptions(true);
     
     const question = questions[currentQuestion];
-    const correct = answer === question.a;
+    const answerLetters = answer.replace(/\s+/g, '');
+    const questionLetters = question.a.replace(/\s+/g, '');
+    const correct = normalize(answerLetters) === normalize(questionLetters) ||
+      (Array.isArray(question.accepted) && question.accepted.some(a => normalize(answerLetters) === normalize(a.replace(/\s+/g, ''))));
 
     // Feedback háptico diferenciado
     if (correct) {
@@ -231,7 +265,7 @@ export const JergaBasicaScreen: React.FC = () => {
       setStreak(streak + 1);
       
       // Efecto de acierto más dramático
-      if (optionAnimations[index]) {
+      if (index >= 0 && optionAnimations[index]) {
         Animated.sequence([
           Animated.timing(optionAnimations[index], {
             toValue: 1.1,
@@ -255,7 +289,7 @@ export const JergaBasicaScreen: React.FC = () => {
       setVidas(vidas - 1);
       
       // Efecto de error más pronunciado
-      if (optionAnimations[index]) {
+      if (index >= 0 && optionAnimations[index]) {
         Animated.sequence([
           Animated.timing(optionAnimations[index], {
             toValue: 0.9,
@@ -279,16 +313,38 @@ export const JergaBasicaScreen: React.FC = () => {
       feedbackAnim.setValue(0);
       
       if (currentQuestion + 1 >= questions.length) {
-        // Nivel completado - mostrar modal de victoria
-        Animated.timing(victoryAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }).start();
-        setShowVictoryModal(true);
+        // Última pregunta: solo victoria si fue correcto
+        if (correct) {
+          // Animación especial de éxito antes del modal
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setShowSuccessOverlay(true);
+          successBurstAnim.setValue(0);
+          Animated.timing(successBurstAnim, {
+            toValue: 1,
+            duration: 1400,
+            useNativeDriver: true,
+          }).start(() => {
+            Animated.timing(victoryAnim, {
+              toValue: 1,
+              duration: 500,
+              useNativeDriver: true,
+            }).start();
+            setShowSuccessOverlay(false);
+            setShowVictoryModal(true);
+          });
+        } else {
+          // Si falló la última, solo avanzar a modal de derrota si sin vidas, o quedarse en estado final
+          if (vidas - 1 <= 0) {
+            // derrota ya la maneja el efecto de vidas
+          } else {
+            // feedback pero sin modal de victoria
+          }
+        }
       } else {
-        // Avanzar a la siguiente pregunta
-        setCurrentQuestion(currentQuestion + 1);
+        // Avanzar solo si fue correcta; si no, repetir la misma pregunta
+        if (correct) {
+          setCurrentQuestion(currentQuestion + 1);
+        }
       }
     }, 1800);
   };
@@ -297,9 +353,9 @@ export const JergaBasicaScreen: React.FC = () => {
     if (metras < 1) return;
 
     const question = questions[currentQuestion];
-    const availableOptions = question.choices
+    const availableOptions = (question.choices || [])
       .map((choice, index) => ({ choice, index }))
-      .filter((_, index) => !eliminatedOptions.has(index) && question.choices[index] !== question.a);
+      .filter((_, index) => !eliminatedOptions.has(index) && (question.choices || [])[index] !== question.a);
 
     if (availableOptions.length <= 1) return;
 
@@ -404,6 +460,65 @@ export const JergaBasicaScreen: React.FC = () => {
 
   const currentQ = questions[currentQuestion];
   const progress = (currentQuestion / questions.length) * 100;
+  const optionItems: OptionItem[] = (currentQ.choices || []).map((choice, index) => {
+    const isSelected: boolean = selectedAnswer === choice;
+    const isCorrectAnswer: boolean = choice === currentQ.a;
+    const isEliminated: boolean = eliminatedOptions.has(index);
+    const showCorrect: boolean = disabledOptions && isCorrectAnswer;
+    const showIncorrect: boolean = disabledOptions && isSelected && !isCorrectAnswer;
+    return {
+      label: choice,
+      isEliminated,
+      isCorrect: showCorrect,
+      isIncorrect: showIncorrect,
+    };
+  });
+
+  const isInputMode: boolean = currentQ.mode === 'input';
+  const onValidateInput = (value: string) => {
+    // Reusar handleAnswer con index -1 para indicar input
+    handleAnswer(value, -1);
+  };
+
+  // Mostrar loading mientras la imagen no esté cargada
+  if (!imageLoaded) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+        <Animated.View 
+          style={[
+            styles.loadingContainer,
+            {
+              opacity: fadeAnim,
+              transform: [
+                { scale: scaleAnim },
+                { translateY: slideAnim }
+              ]
+            }
+          ]}
+        >
+          <Animated.View 
+            style={[
+              styles.loadingContent,
+              {
+                opacity: fadeAnim,
+                transform: [
+                  { scale: scaleAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.8, 1]
+                  })}
+                ]
+              }
+            ]}
+          >
+            <ActivityIndicator size="large" color="#2E6CA8" />
+            <Text style={styles.loadingText}>Cargando...</Text>
+            <Text style={styles.loadingSubtext}>Preparando tu aventura</Text>
+          </Animated.View>
+        </Animated.View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -413,6 +528,8 @@ export const JergaBasicaScreen: React.FC = () => {
         source={require('../../../assets/FONDO2.png')}
         resizeMode="cover"
         style={styles.background}
+        onLoad={() => setImageLoaded(true)}
+        onError={() => setImageLoaded(true)} // Si falla, mostrar UI de todas formas
       >
         <LinearGradient
           colors={["rgba(255, 248, 225, 0.85)", "rgba(255, 248, 225, 0.95)"]}
@@ -421,53 +538,7 @@ export const JergaBasicaScreen: React.FC = () => {
           style={styles.scrim}
         />
         {/* HUD Superior */}
-        <Animated.View 
-          style={[
-            styles.hudContainer,
-            { 
-              opacity: hudAnim,
-              transform: [
-                { translateY: hudAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-20, 0]
-                })}
-              ]
-            }
-          ]}
-        >
-          <TouchableOpacity style={styles.lobbyButton} onPress={goHome}>
-            <LinearGradient
-              colors={['#FFFFFF', '#FEF3C7']}
-              style={styles.lobbyButtonGradient}
-            >
-              <Ionicons name="home" size={18} color="#0F172A" />
-              <Text style={styles.lobbyButtonText}>Lobby</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={styles.hudStats}>
-            <View style={styles.statChip}>
-              <LinearGradient colors={['#FEF2F2', '#FECACA']} style={styles.statChipGradient}>
-                <Ionicons name="heart" size={18} color="#DC2626" />
-                <Text style={styles.statText}>{vidas}</Text>
-              </LinearGradient>
-            </View>
-            
-            <View style={styles.statChip}>
-              <LinearGradient colors={['#FFF7ED', '#FED7AA']} style={styles.statChipGradient}>
-                <Ionicons name="flame" size={18} color="#F97316" />
-                <Text style={styles.statText}>{streak}</Text>
-              </LinearGradient>
-            </View>
-            
-            <View style={styles.statChip}>
-              <LinearGradient colors={['#EFF6FF', '#BFDBFE']} style={styles.statChipGradient}>
-                <Ionicons name="diamond" size={18} color="#2563EB" />
-                <Text style={styles.statText}>{metras}</Text>
-              </LinearGradient>
-            </View>
-          </View>
-        </Animated.View>
+        <HudBar vidas={vidas} streak={streak} metras={metras} onHome={goHome} hudAnim={hudAnim} />
 
         {/* Contenido Principal */}
         <Animated.View 
@@ -483,321 +554,75 @@ export const JergaBasicaScreen: React.FC = () => {
           ]}
         >
           {/* Header */}
-          <View style={styles.header}>
-            <LinearGradient
-              colors={[colors.yellowPrimary, colors.white]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.titleGradient}
-            >
-              <Text style={styles.title}>
-                Traduce la Jerga · Nivel {nivel}
-              </Text>
-            </LinearGradient>
-            <Text style={styles.questionCounter}>
-              Pregunta {currentQuestion + 1}/{questions.length}
-            </Text>
-            <Text style={styles.subtitle}>
-              Traduce la palabra o frase al "criollísimo".
-            </Text>
-          </View>
+          <Header
+            nivel={nivel}
+            currentQuestion={currentQuestion}
+            totalQuestions={questions.length}
+            titleGradientAnim={titleGradientAnim}
+            lastQuestionCueAnim={lastQuestionCueAnim}
+          />
 
           {/* Barra de Progreso */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              <Animated.View 
-                style={[
-                  styles.progressFill,
-                  { 
-                    width: progressAnim.interpolate({
-                      inputRange: [0, 100],
-                      outputRange: ['0%', '100%'],
-                      extrapolate: 'clamp',
-                    })
-                  }
-                ]} 
-              />
-            </View>
-          </View>
+          <ProgressBar progressAnim={progressAnim} />
 
           {/* Tarjeta de Pregunta */}
-          <Animated.View 
-            style={[
-              styles.questionCard,
-              {
-                opacity: questionCardAnim,
-                transform: [
-                  { translateY: questionCardAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0]
-                  })},
-                  { scale: questionCardAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.95, 1]
-                  })}
-                ]
-              }
-            ]}
-          >
-            <LinearGradient
-              colors={['#FFFFFF', '#FEF3C7']}
-              style={styles.questionCardGradient}
-            >
-              <Text style={styles.questionText}>{currentQ.q}</Text>
-              
-              {showFeedback && (
-                <Animated.View 
-                  style={[
-                    styles.feedbackContainer,
-                    { 
-                      opacity: feedbackAnim,
-                      transform: [
-                        { scale: feedbackAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.8, 1]
-                        })}
-                      ]
-                    }
-                  ]}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    {isCorrect ? (
-                      <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
-                    ) : (
-                      <Ionicons name="close-circle" size={18} color="#DC2626" />
-                    )}
-                    <Text style={[
-                      styles.feedbackText,
-                      { color: isCorrect ? '#16A34A' : '#DC2626' }
-                    ]}>
-                      {isCorrect ? '¡Correcto!' : 'Incorrecto'}
-                    </Text>
-                  </View>
-                </Animated.View>
-              )}
-            </LinearGradient>
-          </Animated.View>
+          <QuestionCard
+            question={currentQ.q}
+            questionCardAnim={questionCardAnim}
+            showFeedback={showFeedback}
+            isCorrect={isCorrect}
+            feedbackAnim={feedbackAnim}
+          />
 
-          {/* Opciones */}
-          <Animated.View 
-            style={[
-              styles.optionsContainer,
-              {
+          {/* Respuesta: opciones o input */}
+          {isInputMode ? (
+            <View style={{ alignItems: 'center', justifyContent: 'flex-end', width: '100%', marginTop: -6, paddingBottom: 0, flexGrow: 1 }}>
+              <InputKeyboard
+                answer={currentQ.a}
+                onSubmit={onValidateInput}
+                disabled={disabledOptions}
+                accessoryRight={
+                  <InputActionsRow
+                    onRevealOne={() => kbRef.current?.revealOneLetter()}
+                    onRemoveWrong={() => kbRef.current?.removeWrongLetters()}
+                    onCheck={() => kbRef.current?.submit()}
+                    costs={{ revealOne: 25, removeWrong: 50, check: 150 }}
+                  />
+                }
+                ref={kbRef}
+              />
+            </View>
+          ) : (
+            <Animated.View
+              style={{
                 opacity: optionsContainerAnim,
                 transform: [
-                  { translateY: optionsContainerAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [30, 0]
-                  })}
-                ]
-              }
-            ]}
-          >
-            {currentQ.choices.map((choice, index) => {
-              const isSelected = selectedAnswer === choice;
-              const isCorrectAnswer = choice === currentQ.a;
-              const isEliminated = eliminatedOptions.has(index);
-              const showCorrect = disabledOptions && isCorrectAnswer;
-              const showIncorrect = disabledOptions && isSelected && !isCorrectAnswer;
-
-              return (
-                <Animated.View
-                  key={index}
-                  style={[
-                    { transform: [{ scale: optionAnimations[index] || 1 }] }
-                  ]}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.optionButton,
-                      isEliminated && styles.optionEliminated,
-                      showCorrect && styles.optionCorrect,
-                      showIncorrect && styles.optionIncorrect,
-                    ]}
-                    onPress={() => handleAnswer(choice, index)}
-                    disabled={disabledOptions || isEliminated}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={
-                        isEliminated 
-                          ? ['#F3F4F6', '#E5E7EB']
-                          : showCorrect
-                          ? ['#DCFCE7', '#BBF7D0']
-                          : showIncorrect
-                          ? ['#FEE2E2', '#FECACA']
-                          : ['#FFFFFF', '#FEF3C7']
-                      }
-                      style={styles.optionGradient}
-                    >
-                      <View style={styles.optionContent}>
-                        <View style={styles.optionKey}>
-                          <Text style={[
-                            styles.optionKeyText,
-                            isEliminated && styles.optionEliminatedText
-                          ]}>
-                            {String.fromCharCode(65 + index)}
-                          </Text>
-                        </View>
-                        {isEliminated && (
-                          <MaterialCommunityIcons name="star-four-points" size={16} color="#9CA3AF" />
-                        )}
-                        <Text style={[
-                          styles.optionText,
-                          isEliminated && styles.optionEliminatedText
-                        ]}>
-                          {choice}
-                        </Text>
-                      </View>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </Animated.View>
-              );
-            })}
-          </Animated.View>
+                  { translateY: optionsContainerAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) },
+                ],
+              }}
+            >
+              <OptionsList
+                options={optionItems}
+                optionAnimations={optionAnimations}
+                disabledOptions={disabledOptions}
+                onPressOption={(idx) => handleAnswer(currentQ.choices![idx], idx)}
+              />
+            </Animated.View>
+          )}
 
           {/* Botón de Pista */}
-          <TouchableOpacity 
-            style={[
-              styles.hintButton,
-              metras < 1 && styles.hintButtonDisabled
-            ]}
-            onPress={handleHint}
-            disabled={metras < 1 || eliminatedOptions.size >= 2}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={
-                metras < 1 
-                  ? ['#F3F4F6', '#E5E7EB']
-                  : ['#FEF3C7', '#FDE68A', '#F59E0B']
-              }
-              style={styles.hintButtonGradient}
-            >
-              <Ionicons name="bulb" size={20} color={metras < 1 ? '#9CA3AF' : '#FFFFFF'} />
-              <Text style={[
-                styles.hintButtonText,
-                metras < 1 && styles.hintButtonDisabledText
-              ]}>
-                Pista
-              </Text>
-              <View style={[
-                styles.hintCost,
-                metras < 1 && styles.hintCostDisabled
-              ]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Text style={[
-                    styles.hintCostText,
-                    metras < 1 && styles.hintCostDisabledText
-                  ]}>
-                    1
-                  </Text>
-                  <Ionicons name="diamond" size={14} color={metras < 1 ? '#9CA3AF' : '#0F172A'} />
-                </View>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
+          {null}
         </Animated.View>
       </ImageBackground>
 
+      {/* Overlay de éxito especial */}
+      <SuccessOverlay visible={showSuccessOverlay} successAnim={successBurstAnim} />
+
       {/* Modal de Victoria */}
-      {showVictoryModal && (
-        <Animated.View 
-          style={[
-            styles.modalOverlay,
-            { opacity: victoryAnim }
-          ]}
-        >
-          <Animated.View 
-            style={[
-              styles.modal,
-              {
-                transform: [
-                  { scale: victoryAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1]
-                  })},
-                  { translateY: victoryAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [50, 0]
-                  })}
-                ]
-              }
-            ]}
-          >
-            <Text style={styles.modalTitle}>¡Nivel completado!</Text>
-            <Text style={styles.modalText}>
-              Ganaste <Text style={styles.modalHighlight}>5 Metras</Text>. 
-              Se desbloquea el siguiente nivel.
-            </Text>
-            <TouchableOpacity style={styles.modalButton} onPress={nextLevel}>
-              <LinearGradient
-                colors={['#FACC15', '#F59E0B']}
-                style={styles.modalButtonGradient}
-              >
-                <Text style={styles.modalButtonText}>Siguiente nivel</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
-      )}
+      <VictoryModal visible={showVictoryModal} victoryAnim={victoryAnim} onNextLevel={nextLevel} />
 
       {/* Modal de Derrota */}
-      {showDefeatModal && (
-        <Animated.View 
-          style={[
-            styles.modalOverlay,
-            { opacity: defeatAnim }
-          ]}
-        >
-          <Animated.View 
-            style={[
-              styles.modal,
-              {
-                transform: [
-                  { scale: defeatAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1]
-                  })},
-                  { translateY: defeatAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [50, 0]
-                  })}
-                ]
-              }
-            ]}
-          >
-            <Text style={styles.modalTitle}>Te quedaste sin vidas</Text>
-            <Text style={styles.modalText}>
-              Puedes continuar este nivel con 1 vida pagando 2 Metras.
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={styles.modalButton} 
-                onPress={continueWithMetras}
-              >
-                <LinearGradient
-                  colors={['#FACC15', '#F59E0B']}
-                  style={styles.modalButtonGradient}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={styles.modalButtonText}>Continuar (2</Text>
-                    <Ionicons name="diamond" size={16} color="#0F172A" />
-                    <Text style={styles.modalButtonText}>)</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.modalButtonSecondary} 
-                onPress={goHome}
-              >
-                <Text style={styles.modalButtonSecondaryText}>Salir</Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </Animated.View>
-      )}
+      <DefeatModal visible={showDefeatModal} defeatAnim={defeatAnim} onContinue={continueWithMetras} onExit={goHome} />
     </SafeAreaView>
   );
 };
@@ -805,334 +630,32 @@ export const JergaBasicaScreen: React.FC = () => {
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  background: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  scrim: { ...StyleSheet.absoluteFillObject },
-  hudContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    backgroundColor: '#FFF8E1',
   },
-  lobbyButton: {
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: colors.border,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  lobbyButtonGradient: {
-    flexDirection: 'row',
+  loadingContent: {
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    justifyContent: 'center',
   },
-  lobbyButtonEmoji: {
-    fontSize: 18,
-  },
-  lobbyButtonText: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  hudStats: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  statChip: {
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: colors.border,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  statChipGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  statText: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  titleGradient: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  title: {
+  loadingText: {
+    marginTop: 16,
     fontSize: 20,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    textAlign: 'center',
+    fontWeight: '700',
+    color: '#2E6CA8',
   },
-  questionCounter: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  progressContainer: {
-    marginBottom: 16,
-  },
-  progressBar: {
-    height: 12,
-    backgroundColor: colors.grayLight,
-    borderRadius: 9999,
-    borderWidth: 2,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#22C55E',
-    borderRadius: 9999,
-  },
-  questionCard: {
-    marginBottom: 16,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: colors.border,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
-  questionCardGradient: {
-    padding: 16,
-    borderRadius: 14,
-  },
-  questionText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-  feedbackContainer: {
+  loadingSubtext: {
     marginTop: 8,
-  },
-  feedbackText: {
     fontSize: 14,
-    fontWeight: '900',
-    textAlign: 'center',
+    fontWeight: '400',
+    color: '#6B7280',
   },
-  optionsContainer: {
-    gap: 12,
-    marginBottom: 24,
-  },
-  optionButton: {
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: colors.border,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
-  optionGradient: {
-    padding: 14,
-    borderRadius: 14,
-  },
-  optionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  optionKey: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: colors.blueLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  optionKeyText: {
-    fontWeight: '900',
-    color: colors.primary,
-    fontSize: 14,
-  },
-  optionText: {
-    flex: 1,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    fontSize: 14,
-  },
-  optionCorrect: {
-    borderColor: '#22C55E',
-  },
-  optionIncorrect: {
-    borderColor: '#EF4444',
-  },
-  optionEliminated: {
-    borderColor: colors.gray,
-  },
-  optionEliminatedText: {
-    color: colors.gray,
-  },
-  hintButton: {
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: colors.secondary,
-    shadowColor: colors.secondary,
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  hintButtonDisabled: {
-    borderColor: colors.grayLight,
-    shadowOpacity: 0.1,
-    elevation: 2,
-  },
-  hintButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 13,
-  },
-  hintButtonText: {
-    fontWeight: '800',
-    color: colors.onPrimary,
-    fontSize: 16,
-  },
-  hintButtonDisabledText: {
-    color: colors.gray,
-  },
-  hintCost: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  hintCostDisabled: {
-    backgroundColor: 'rgba(156, 163, 175, 0.3)',
-  },
-  hintCostText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-  },
-  hintCostDisabledText: {
-    color: colors.gray,
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.overlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 60,
-  },
-  modal: {
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: 20,
-    padding: 18,
-    width: '85%',
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 16 },
-    elevation: 8,
-  },
-  modalTitle: {
-    fontWeight: '900',
-    fontSize: 18,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  modalText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  modalHighlight: {
-    fontWeight: 'bold',
-    color: colors.secondary,
-  },
-  modalButtons: {
-    gap: 8,
-  },
-  modalButton: {
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: colors.secondary,
-    shadowColor: colors.secondary,
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  modalButtonGradient: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 13,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    fontWeight: '900',
-    color: colors.textPrimary,
-    fontSize: 16,
-  },
-  modalButtonSecondary: {
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: colors.border,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  modalButtonSecondaryText: {
-    fontWeight: '600',
-    color: colors.textSecondary,
-    fontSize: 16,
-  },
+  background: { flex: 1, backgroundColor: 'transparent' },
+  scrim: { ...StyleSheet.absoluteFillObject },
+  contentContainer: { flex: 1, paddingHorizontal: 16, paddingBottom: 16 },
 });
 
 export default JergaBasicaScreen;

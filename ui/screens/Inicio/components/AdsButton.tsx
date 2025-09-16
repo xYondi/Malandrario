@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { TouchableOpacity, View, StyleSheet, Text, Animated } from 'react-native';
+import { TouchableOpacity, View, StyleSheet, Text, Animated, Easing } from 'react-native';
 import { colors } from '../../../theme/colors';
 
 interface AdsButtonProps {
@@ -7,120 +7,237 @@ interface AdsButtonProps {
 }
 
 const AdsButton: React.FC<AdsButtonProps> = ({ onPress }) => {
-  const bounceAnim = useRef(new Animated.Value(1)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
+  // Animaciones principales
+  const scaleAnim = useRef(new Animated.Value(1)).current; // respiración/bounce
+  const wobbleAnim = useRef(new Animated.Value(0)).current; // balanceo
+  const bobAnim = useRef(new Animated.Value(0)).current; // flotación eje Y
+  const shineAnim = useRef(new Animated.Value(0)).current; // barrido de brillo
+  const sparklesAnim = useRef(new Animated.Value(0)).current; // partículas
 
   useEffect(() => {
-    // Animación de rebote continuo
-    const bounceAnimation = Animated.loop(
+    // Respiración (escala suave)
+    const breathe = Animated.loop(
       Animated.sequence([
-        Animated.timing(bounceAnim, {
-          toValue: 1.1,
-          duration: 1500,
+        Animated.timing(scaleAnim, {
+          toValue: 1.06,
+          duration: 1200,
+          easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.timing(bounceAnim, {
+        Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 1500,
+          duration: 1200,
+          easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
       ])
     );
 
-    // Animación de pulso del corazón
-    const pulseAnimation = Animated.loop(
+    // Balanceo (wobble) tipo caricatura
+    const wobble = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 800,
+        Animated.timing(wobbleAnim, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 800,
+        Animated.timing(wobbleAnim, {
+          toValue: -1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
       ])
     );
 
-    // Rotación sutil del botón
-    const rotateAnimation = Animated.loop(
+    // Flotación vertical
+    const bob = Animated.loop(
       Animated.sequence([
-        Animated.timing(rotateAnim, {
+        Animated.timing(bobAnim, {
           toValue: 1,
-          duration: 4000,
+          duration: 1400,
+          easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.timing(rotateAnim, {
+        Animated.timing(bobAnim, {
+          toValue: -1,
+          duration: 1400,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    // Barrido de brillo infinito
+    const shine = Animated.loop(
+      Animated.timing(shineAnim, {
+        toValue: 1,
+        duration: 2200,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+
+    // Partículas intermitentes
+    const sparkles = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparklesAnim, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparklesAnim, {
           toValue: 0,
-          duration: 4000,
+          duration: 900,
           useNativeDriver: true,
         }),
       ])
     );
 
-    bounceAnimation.start();
-    pulseAnimation.start();
-    rotateAnimation.start();
+    breathe.start();
+    wobble.start();
+    bob.start();
+    shine.start();
+    sparkles.start();
 
     return () => {
-      bounceAnimation.stop();
-      pulseAnimation.stop();
-      rotateAnimation.stop();
+      breathe.stop();
+      wobble.stop();
+      bob.stop();
+      shine.stop();
+      sparkles.stop();
     };
   }, []);
 
-  const rotateInterpolate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '5deg'],
+  const wobbleInterpolate = wobbleAnim.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: ['-6deg', '0deg', '6deg'],
   });
 
+  const bobInterpolate = bobAnim.interpolate({
+    inputRange: [-1, 1],
+    outputRange: [4, -4],
+  });
+
+  const handlePress = () => {
+    // Squash and stretch al presionar
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.92,
+        duration: 80,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        tension: 140,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onPress());
+  };
+
   return (
-    <TouchableOpacity 
-      style={styles.adsButton} 
-      onPress={onPress}
-      activeOpacity={0.7}
+    <TouchableOpacity
+      style={styles.adsButton}
+      onPress={handlePress}
+      activeOpacity={0.9}
     >
-      <Animated.View style={[
-        styles.container,
-        {
-          transform: [
-            { scale: bounceAnim },
-            { rotate: rotateInterpolate }
-          ]
-        }
-      ]}>
-        {/* Sombra del botón */}
+      <Animated.View
+        style={[
+          styles.container,
+          {
+            transform: [
+              { scale: scaleAnim },
+              { rotate: wobbleInterpolate },
+              { translateY: bobInterpolate },
+            ],
+          },
+        ]}
+      >
+        {/* Estallido (starburst) de fondo */}
+        <View style={styles.starburstContainer} pointerEvents="none">
+          {Array.from({ length: 10 }).map((_, index) => (
+            <View
+              key={`ray-${index}`}
+              style={[
+                styles.ray,
+                { transform: [{ rotate: `${index * 18}deg` }] },
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* Sombra base tipo sticker */}
         <View style={styles.shadow} />
-        
-        {/* Botón principal */}
+
+        {/* Botón principal con borde grueso */}
         <View style={styles.mainButton}>
-          {/* Efecto de brillo */}
-          <View style={styles.glow} />
-          
-          {/* Contenido del botón */}
+          {/* Capa interior para simular volumen */}
+          <View style={styles.innerButton} />
+
+          {/* Barrido de brillo */}
+          <Animated.View
+            style={[
+              styles.shine,
+              {
+                transform: [
+                  {
+                    translateX: shineAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-60, 60],
+                    }),
+                  },
+                  { rotate: '-25deg' },
+                ],
+              },
+            ]}
+          />
+
+          {/* Contenido: icono y texto */}
           <View style={styles.content}>
-            {/* Icono de play */}
-            <Animated.View style={[
-              styles.playContainer,
-              { transform: [{ scale: pulseAnim }] }
-            ]}>
-              <Text style={styles.playIcon}>▶️</Text>
-            </Animated.View>
-            
-            {/* Texto ADS */}
+            <View style={styles.iconBadge}>
+              <Text style={styles.iconText}>▶</Text>
+            </View>
             <Text style={styles.adsText}>ADS</Text>
-            
-            {/* Línea decorativa */}
-            <View style={styles.decorativeLine} />
           </View>
         </View>
-        
-        {/* Partículas decorativas */}
-        <View style={styles.particle1} />
-        <View style={styles.particle2} />
-        <View style={styles.particle3} />
+
+        {/* Cinta tipo badge */}
+        <View style={styles.ribbonContainer} pointerEvents="none">
+          <View style={styles.ribbon}>
+            <Text style={styles.ribbonText}>BONUS</Text>
+          </View>
+          <View style={styles.ribbonTailLeft} />
+          <View style={styles.ribbonTailRight} />
+        </View>
+
+        {/* Estrellas decorativas */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.sparkle,
+            styles.sparkle1,
+            { opacity: sparklesAnim },
+          ]}
+        />
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.sparkle,
+            styles.sparkle2,
+            { opacity: sparklesAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] }) },
+          ]}
+        />
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.sparkle,
+            styles.sparkle3,
+            { opacity: sparklesAnim },
+          ]}
+        />
       </Animated.View>
     </TouchableOpacity>
   );
@@ -137,96 +254,169 @@ const styles = StyleSheet.create({
   },
   shadow: {
     position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    top: 5,
-    left: 5,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    top: 8,
+    left: 8,
   },
   mainButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: colors.yellowPrimary,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    borderWidth: 4,
+    borderWidth: 6,
     borderColor: colors.primary,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 12,
   },
-  glow: {
+  innerButton: {
     position: 'absolute',
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: 'rgba(250, 204, 21, 0.3)',
-    top: -5,
-    left: -5,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: colors.yellowDark,
+    opacity: 0.25,
   },
   content: {
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
-  playContainer: {
+  iconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.red,
+    borderWidth: 3,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 2,
   },
-  playIcon: {
-    fontSize: 22,
-  },
-  adsText: {
-    fontSize: 11,
+  iconText: {
+    fontSize: 20,
+    color: 'white',
     fontWeight: '900',
-    color: colors.primary,
-    letterSpacing: 1.2,
-    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowColor: 'rgba(0,0,0,0.25)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  decorativeLine: {
-    position: 'absolute',
-    width: 35,
-    height: 3,
-    backgroundColor: colors.red,
-    borderRadius: 1.5,
-    transform: [{ rotate: '45deg' }],
-    top: 10,
+  adsText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: colors.primary,
+    letterSpacing: 1.4,
+    textShadowColor: 'rgba(255,255,255,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  particle1: {
+  // Estallido
+  starburstContainer: {
     position: 'absolute',
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: colors.red,
-    top: 12,
-    right: 12,
-    opacity: 0.7,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  particle2: {
+  ray: {
     position: 'absolute',
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    width: 12,
+    height: 54,
+    borderRadius: 6,
     backgroundColor: colors.bluePrimary,
-    top: 22,
-    left: 6,
-    opacity: 0.6,
+    opacity: 0.5,
   },
-  particle3: {
+  // Brillo en barrido
+  shine: {
     position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 34,
+    height: 140,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    top: -26,
+    left: 0,
+    borderRadius: 16,
+  },
+  // Cinta superior
+  ribbonContainer: {
+    position: 'absolute',
+    top: -6,
+    alignSelf: 'center',
+    alignItems: 'center',
+  },
+  ribbon: {
+    backgroundColor: colors.red,
+    paddingHorizontal: 12,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 3,
+    borderColor: colors.primary,
+  },
+  ribbonText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
+  ribbonTailLeft: {
+    position: 'absolute',
+    left: -8,
+    top: 8,
+    width: 10,
+    height: 10,
+    backgroundColor: colors.red,
+    borderColor: colors.primary,
+    borderLeftWidth: 3,
+    borderBottomWidth: 3,
+    transform: [{ rotate: '45deg' }],
+  },
+  ribbonTailRight: {
+    position: 'absolute',
+    right: -8,
+    top: 8,
+    width: 10,
+    height: 10,
+    backgroundColor: colors.red,
+    borderColor: colors.primary,
+    borderRightWidth: 3,
+    borderBottomWidth: 3,
+    transform: [{ rotate: '-45deg' }],
+  },
+  // Estrellas
+  sparkle: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'white',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  sparkle1: {
+    top: 6,
+    right: -2,
+    backgroundColor: colors.yellowPrimary,
+  },
+  sparkle2: {
+    bottom: 10,
+    left: -4,
+    backgroundColor: colors.bluePrimary,
+  },
+  sparkle3: {
+    bottom: 2,
+    right: 8,
     backgroundColor: colors.yellowDark,
-    bottom: 18,
-    right: 6,
-    opacity: 0.8,
   },
 });
 
