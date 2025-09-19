@@ -1,15 +1,22 @@
 import React, { useMemo, useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Platform } from 'react-native';
 import { colors } from '../../../theme/colors';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import Svg, { Path, G } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
+import GlassView from '../../../../components/GlassView';
+
+// Función para detectar si es iOS 26+ (obligatorio para liquid glass)
+const isiOS26Plus = (): boolean => {
+  return Platform.OS === 'ios' && parseInt(Platform.Version as string, 10) >= 26;
+};
 
 interface InputKeyboardProps {
   answer: string; // respuesta canónica (se usa para longitud y autocompletar espacios)
   onSubmit: (value: string) => void;
   disabled?: boolean;
   accessoryRight?: React.ReactNode; // ej. botón de pista compacto
+  onInputChange?: () => void; // callback cuando el usuario modifica su respuesta
 }
 
 export interface InputKeyboardRef {
@@ -23,7 +30,10 @@ const ALPHABET = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'.split('');
 
 const screenWidth = Dimensions.get('window').width;
 
-const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer, onSubmit, disabled, accessoryRight }, ref) => {
+const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer, onSubmit, disabled, accessoryRight, onInputChange }, ref) => {
+  // Detectar si usar liquid glass (obligatorio para iOS 26+)
+  const useLiquidGlass = isiOS26Plus();
+  
   const normalizedAnswer: string = useMemo(() => answer.replace(/\s+/g, ' ').trim(), [answer]);
   const slots: string[] = useMemo(() => normalizedAnswer.split(''), [normalizedAnswer]);
   const [filled, setFilled] = useState<string[]>(Array(slots.length).fill(''));
@@ -35,39 +45,82 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
     setHasSubmitted(false);
     // CRÍTICO: Resetear letras deshabilitadas entre preguntas
     setDisabledLetters(new Set());
+    
+    // Inicializar animaciones para cada baldosa
+    const newSlotScaleAnimations: {[key: number]: Animated.Value} = {};
+    const newLetterAnimations: {[key: number]: Animated.Value} = {};
+    
+    slots.forEach((_, index) => {
+      if (slots[index] !== ' ') {
+        newSlotScaleAnimations[index] = new Animated.Value(0);
+        newLetterAnimations[index] = new Animated.Value(1);
+      }
+    });
+    
+    setSlotScaleAnimations(newSlotScaleAnimations);
+    setLetterAnimations(newLetterAnimations);
+    
+    // Animar aparición de baldosas inmediatamente, sin esperar otras animaciones
+    setTimeout(() => {
+      slots.forEach((ch, index) => {
+        if (ch !== ' ') {
+          setTimeout(() => {
+            if (newSlotScaleAnimations[index]) {
+              Animated.spring(newSlotScaleAnimations[index], {
+                toValue: 1,
+                tension: 120,
+                friction: 6,
+                useNativeDriver: true,
+              }).start();
+            }
+          }, index * 120); // Aparición escalonada cada 120ms en orden secuencial
+        }
+      });
+    }, 100); // Empezar casi inmediatamente
   }, [answer, slots.length]);
   const gap: number = 3;
   const maxPerLineWidth: number = screenWidth - horizontalPadding;
   
   // Calcular distribución inteligente de baldosas
   const slotDistribution = useMemo(() => {
-    const letters = slots.filter(ch => ch !== ' ').length;
-    const spaces = slots.filter(ch => ch === ' ').length;
+    const totalSlots = slots.length;
     
-    // Si hay pocas letras, usar una sola fila
-    if (letters <= 8) {
-      return { rows: 1, maxPerRow: letters + spaces };
+    // Calcular cuántas baldosas pueden caber en una fila basado en el ancho disponible
+    const minSlotSize = 20; // Tamaño mínimo más pequeño para permitir más baldosas
+    
+    // Calcular máximo número de baldosas que caben en una fila con tamaño mínimo
+    const maxPossiblePerRow = Math.floor((maxPerLineWidth + gap) / (minSlotSize + gap));
+    
+    // Ser más generoso: permitir hasta 12 baldosas en una fila si caben físicamente
+    const actualMaxPerRow = Math.min(maxPossiblePerRow, 12);
+    
+    // Si todas las baldosas caben en una fila, usar una fila
+    if (totalSlots <= actualMaxPerRow) {
+      return { rows: 1, maxPerRow: totalSlots };
     }
     
-    // Si hay muchas letras, distribuir en 2 filas
-    const maxPerRow = Math.ceil((letters + spaces) / 2);
+    // Si no caben todas, distribuir en 2 filas
+    const maxPerRow = Math.ceil(totalSlots / 2);
     return { rows: 2, maxPerRow };
-  }, [slots]);
+  }, [slots, maxPerLineWidth, gap]);
   
   const computedSlotSize: number = useMemo(() => {
     const target = Math.floor((maxPerLineWidth - gap * (slotDistribution.maxPerRow - 1)) / Math.max(slotDistribution.maxPerRow, 1));
     // límites para que no sean demasiado pequeños o grandes
-    return Math.max(22, Math.min(38, target));
-  }, [slotDistribution.maxPerRow, maxPerLineWidth]);
+    return Math.max(20, Math.min(38, target));
+  }, [slotDistribution.maxPerRow, maxPerLineWidth, gap]);
   const [disabledLetters, setDisabledLetters] = useState<Set<string>>(new Set());
   const [pressedKey, setPressedKey] = useState<string | null>(null);
   const [flyingLetter, setFlyingLetter] = useState<{key: string, anim: Animated.Value} | null>(null);
   const keyAnimations = useRef<{[key: string]: Animated.Value}>({});
   const [showResult, setShowResult] = useState<'correct' | 'incorrect' | null>(null);
+  
   const resultAnim = useRef(new Animated.Value(0)).current;
   const [letterAnimations, setLetterAnimations] = useState<{[key: number]: Animated.Value}>({});
   const [removingLetter, setRemovingLetter] = useState<{index: number, anim: Animated.Value} | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
+  const [slotScaleAnimations, setSlotScaleAnimations] = useState<{[key: number]: Animated.Value}>({});
+  const [isAnimating, setIsAnimating] = useState<boolean>(false);
   // Tamaño de teclas para asegurar máximo 3 líneas y sin wrap
   // Distribución QWERTY con Ñ como en el ejemplo
   const rows = useMemo(
@@ -98,6 +151,7 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
     return -1;
   }, [filled, slots]);
 
+
   useEffect(() => { 
     setFilled(Array(slots.length).fill('')); 
     setShowResult(null);
@@ -106,8 +160,14 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
   }, [normalizedAnswer]);
 
   const handleKey = (key: string) => {
+    // Siempre permitir resetear feedback
+    onInputChange?.();
+    
     if (disabled) return;
     if (disabledLetters.has(key)) return;
+    
+    // Resetear estado de envío para permitir nueva validación automática
+    setHasSubmitted(false);
     
     // Feedback háptico y visual
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -165,7 +225,16 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
   };
 
   const handleBackspace = () => {
-    if (disabled) return;
+    // Siempre permitir resetear feedback, incluso si está disabled
+    onInputChange?.();
+    
+    // Si está disabled o animating, solo resetear feedback pero no modificar respuesta
+    if (disabled || isAnimating) {
+      return;
+    }
+    
+    // Resetear estado de envío para permitir nueva validación automática
+    setHasSubmitted(false);
     
     // Encontrar la última letra para animar su salida (saltando espacios)
     let removeIndex = -1;
@@ -184,6 +253,7 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
       // Crear animación de salida
       const removeAnim = new Animated.Value(1);
       setRemovingLetter({ index: removeIndex, anim: removeAnim });
+      setIsAnimating(true);
       
       // Animación de salida: escala a 0, rotación y desvanecimiento
       Animated.parallel([
@@ -194,6 +264,7 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
         }),
       ]).start(() => {
         setRemovingLetter(null);
+        setIsAnimating(false);
         // Actualizar el estado después de la animación
         const next = [...filled];
         next[removeIndex] = '';
@@ -241,7 +312,54 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
       const isCorrect = normalize(currentValue) === normalize(answerLetters);
       setShowResult(isCorrect ? 'correct' : 'incorrect');
       
-      // Animación de resultado
+      if (isCorrect) {
+        // Animación especial de éxito: baldosas rebotan dramáticamente una por una
+        slots.forEach((ch, index) => {
+          if (ch !== ' ') {
+            setTimeout(() => {
+              const anim = slotScaleAnimations[index];
+              if (anim) {
+                // Resetear la animación y aplicar rebote
+                anim.setValue(1);
+                
+                // Efecto de rebote múltiple como una pelota
+                Animated.sequence([
+                  // Primer rebote grande
+                  Animated.spring(anim, {
+                    toValue: 1.6,
+                    tension: 200,
+                    friction: 2,
+                    useNativeDriver: true,
+                  }),
+                  // Segundo rebote medio
+                  Animated.spring(anim, {
+                    toValue: 1.3,
+                    tension: 220,
+                    friction: 4,
+                    useNativeDriver: true,
+                  }),
+                  // Tercer rebote pequeño
+                  Animated.spring(anim, {
+                    toValue: 1.15,
+                    tension: 240,
+                    friction: 6,
+                    useNativeDriver: true,
+                  }),
+                  // Retorno final suave
+                  Animated.spring(anim, {
+                    toValue: 1,
+                    tension: 120,
+                    friction: 10,
+                    useNativeDriver: true,
+                  }),
+                ]).start();
+              }
+            }, index * 120); // Efecto cascada en orden secuencial
+          }
+        });
+      }
+      
+      // Animación de resultado (colores)
       Animated.sequence([
         Animated.timing(resultAnim, {
           toValue: 1,
@@ -258,7 +376,7 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
         onSubmit(currentValue);
       });
     }
-  }, [isComplete, currentValue, disabled, answer, resultAnim, hasSubmitted]);
+  }, [isComplete, currentValue, disabled, answer, resultAnim, hasSubmitted, letterAnimations, slots]);
 
   // Hint helpers
   useImperativeHandle(ref, () => ({
@@ -444,6 +562,9 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
                 return <View key={`space-${globalIdx}`} style={{ width: computedSlotSize / 3 }} />;
               }
               
+              const scaleAnim = slotScaleAnimations[globalIdx];
+              const celebrationAnim = letterAnimations[globalIdx];
+              
               return (
                 <Animated.View
                   key={`slot-${globalIdx}`}
@@ -456,12 +577,25 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
                     showResult === 'correct' && styles.slotCorrect,
                     showResult === 'incorrect' && styles.slotIncorrect,
                     {
+                      opacity: scaleAnim || 1,
                       transform: [
                         {
-                          scale: resultAnim.interpolate({
+                          scale: scaleAnim ? scaleAnim.interpolate({
                             inputRange: [0, 0.5, 1],
-                            outputRange: [1, 1.1, 1],
-                          }),
+                            outputRange: [0, 1.2, 1],
+                          }) : 1,
+                        },
+                        {
+                          translateY: scaleAnim ? scaleAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [30, 0],
+                          }) : 0,
+                        },
+                        {
+                          rotateY: scaleAnim ? scaleAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: ['90deg', '45deg', '0deg'],
+                          }) : '0deg',
                         },
                       ],
                     },
@@ -544,29 +678,52 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
               >
                 <TouchableOpacity
                   style={[
-                    styles.key,
+                    useLiquidGlass ? styles.keyLiquidGlass : styles.key,
                     { width: keySize, height: keyHeight },
-                    disabledLetters.has(k) && styles.keyDisabled,
-                    pressedKey === k && styles.keyPressed,
+                    disabledLetters.has(k) && (useLiquidGlass ? styles.keyDisabledLiquidGlass : styles.keyDisabled),
+                    pressedKey === k && (useLiquidGlass ? styles.keyPressedLiquidGlass : styles.keyPressed),
                   ]}
                   onPress={() => handleKey(k)}
                   onPressIn={() => setPressedKey(k)}
                   onPressOut={() => setPressedKey(null)}
                   disabled={disabled || disabledLetters.has(k)}
                 >
-                  <Text style={[styles.keyText, disabledLetters.has(k) && styles.keyTextDisabled]}>{k}</Text>
+                  {useLiquidGlass && (
+                    <GlassView 
+                      style={styles.keyGlassBackground}
+                      glassEffectStyle="clear"
+                      isInteractive={true}
+                      tintColor="rgba(255, 255, 255, 0.12)"
+                    />
+                  )}
+                  <Text style={[
+                    useLiquidGlass ? styles.keyTextLiquidGlass : styles.keyText, 
+                    disabledLetters.has(k) && styles.keyTextDisabled
+                  ]}>{k}</Text>
                 </TouchableOpacity>
               </Animated.View>
             ))}
             {r === 2 && (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: kbGap, gap: kbGap }}>
                 <TouchableOpacity
-                  style={[styles.backKey, { width: backSize, height: backHeight, borderRadius: 10 }, pressedKey === 'BACK' && styles.roundKeyPressed]}
+                  style={[
+                    useLiquidGlass ? styles.backKeyLiquidGlass : styles.backKey, 
+                    { width: backSize, height: backHeight, borderRadius: 10 }, 
+                    pressedKey === 'BACK' && (useLiquidGlass ? styles.roundKeyPressedLiquidGlass : styles.roundKeyPressed)
+                  ]}
                   onPress={handleBackspace}
                   onPressIn={() => setPressedKey('BACK')}
                   onPressOut={() => setPressedKey(null)}
                   disabled={disabled}
                 >
+                  {useLiquidGlass && (
+                    <GlassView 
+                      style={styles.specialKeyGlassBackground}
+                      glassEffectStyle="clear"
+                      isInteractive={true}
+                      tintColor="rgba(255, 255, 255, 0.12)"
+                    />
+                  )}
                   <Svg viewBox="0 -5 32 32" width={Math.floor(backSize * 0.56)} height={Math.floor(backHeight * 0.56)}>
                     <G transform="translate(-518  -1146)" fill="#FFFFFF">
                       <Path d="M540.647,1159.24 C541.039,1159.63 541.039,1160.27 540.647,1160.66 C540.257,1161.05 539.623,1161.05 539.232,1160.66 L536.993,1158.42 L534.725,1160.69 C534.331,1161.08 533.692,1161.08 533.298,1160.69 C532.904,1160.29 532.904,1159.65 533.298,1159.26 L535.566,1156.99 L533.327,1154.76 C532.936,1154.37 532.936,1153.73 533.327,1153.34 C533.718,1152.95 534.352,1152.95 534.742,1153.34 L536.981,1155.58 L539.281,1153.28 C539.676,1152.89 540.314,1152.89 540.708,1153.28 C541.103,1153.68 541.103,1154.31 540.708,1154.71 L538.408,1157.01 L540.647,1159.24 L540.647,1159.24 Z M545.996,1146 L528.051,1146 C527.771,1145.98 527.485,1146.07 527.271,1146.28 L518.285,1156.22 C518.074,1156.43 517.983,1156.71 517.998,1156.98 C517.983,1157.26 518.074,1157.54 518.285,1157.75 L527.271,1167.69 C527.467,1167.88 527.723,1167.98 527.979,1167.98 L527.979,1168 L545.996,1168 C548.207,1168 550,1166.21 550,1164 L550,1150 C550,1147.79 548.207,1146 545.996,1146 L545.996,1146 Z"/>
@@ -574,12 +731,24 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({ answer
                   </Svg>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.clearKey, { width: keySize, height: keyHeight }, pressedKey === 'CLEAR' && styles.keyPressed]}
+                  style={[
+                    useLiquidGlass ? styles.clearKeyLiquidGlass : styles.clearKey, 
+                    { width: keySize, height: keyHeight }, 
+                    pressedKey === 'CLEAR' && (useLiquidGlass ? styles.keyPressedLiquidGlass : styles.keyPressed)
+                  ]}
                   onPress={handleClear}
                   onPressIn={() => setPressedKey('CLEAR')}
                   onPressOut={() => setPressedKey(null)}
                   disabled={disabled}
                 >
+                  {useLiquidGlass && (
+                    <GlassView 
+                      style={styles.specialKeyGlassBackground}
+                      glassEffectStyle="clear"
+                      isInteractive={true}
+                      tintColor="rgba(255, 255, 255, 0.12)"
+                    />
+                  )}
                   <Icon name="trash-can-outline" size={Math.floor(keySize * 0.42)} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
@@ -734,6 +903,88 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     height: '100%',
+  },
+  
+  // Estilos Liquid Glass para iOS 26+
+  keyLiquidGlass: {
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)', // Fondo blanco con opacidad reducida
+    borderWidth: 2,
+    borderColor: '#D7E3F4',
+    shadowColor: '#9FB7DA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+  keyTextLiquidGlass: {
+    fontWeight: '900',
+    color: '#2E6CA8',
+    fontSize: 22,
+    letterSpacing: 0.2,
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  keyPressedLiquidGlass: {
+    transform: [{ scale: 0.95 }],
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Más opaco al presionar
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+  keyDisabledLiquidGlass: {
+    backgroundColor: 'rgba(229, 231, 235, 0.4)', // Fondo gris con opacidad
+    borderColor: 'rgba(156, 163, 175, 0.5)',
+  },
+  keyGlassBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 10,
+  },
+  backKeyLiquidGlass: {
+    backgroundColor: 'rgba(35, 91, 147, 0.7)', // Azul con opacidad reducida
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    paddingHorizontal: 12,
+    shadowColor: '#163C62',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 0,
+  },
+  clearKeyLiquidGlass: {
+    backgroundColor: 'rgba(217, 93, 117, 0.7)', // Rosa con opacidad reducida
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    borderWidth: 2,
+    borderColor: '#C94B63',
+    shadowColor: '#B04257',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+  roundKeyPressedLiquidGlass: {
+    transform: [{ scale: 0.95 }],
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+  },
+  specialKeyGlassBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 10,
   },
 });
 

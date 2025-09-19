@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     height: 60,
     borderRadius: 30,
+    width: '100%', // Asegurar ancho completo
   },
   chipsRow: { 
     paddingLeft: 0,
@@ -95,22 +96,22 @@ const styles = StyleSheet.create({
   containerFadeLeft: {
     position: 'absolute',
     top: 0,
-    left: -50,
+    left: 0,
     bottom: 0,
-    width: 120,
-    borderTopLeftRadius: 50,
-    borderBottomLeftRadius: 50,
+    width: 80, // Reducido de 120 a 80
+    borderTopLeftRadius: 30,
+    borderBottomLeftRadius: 30,
     pointerEvents: 'none',
     zIndex: 1,
   },
   containerFadeRight: {
     position: 'absolute',
     top: 0,
-    right: -80,
+    right: 0,
     bottom: 0,
-    width: 250,
-    borderTopRightRadius: 50,
-    borderBottomRightRadius: 50,
+    width: 120, // Reducido de 250 a 120
+    borderTopRightRadius: 30,
+    borderBottomRightRadius: 30,
     pointerEvents: 'none',
     zIndex: 1,
   },

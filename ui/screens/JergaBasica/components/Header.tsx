@@ -23,36 +23,9 @@ const Header: React.FC<HeaderProps> = ({ nivel, currentQuestion, totalQuestions,
           styles.titleGlow,
           {
             transform: [
-              { scale: lastQuestionCueAnim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.18] }) },
+              { scale: lastQuestionCueAnim.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.08] }) },
             ],
-            opacity: lastQuestionCueAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.7] }),
-          },
-        ]}
-      />
-      {/* Estrellas de cue */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.cueStar,
-          styles.cueStar1,
-          {
-            transform: [
-              { scale: lastQuestionCueAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) },
-            ],
-            opacity: lastQuestionCueAnim,
-          },
-        ]}
-      />
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.cueStar,
-          styles.cueStar2,
-          {
-            transform: [
-              { scale: lastQuestionCueAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) },
-            ],
-            opacity: lastQuestionCueAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.9] }),
+            opacity: lastQuestionCueAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.3] }),
           },
         ]}
       />
@@ -67,11 +40,11 @@ const Header: React.FC<HeaderProps> = ({ nivel, currentQuestion, totalQuestions,
       >
         <Animated.View
           style={{
-            width: screenWidth * 3,
+            width: screenWidth * 1.5, // Reducido de 3 a 1.5
             height: '100%',
             transform: [
               {
-                translateX: titleGradientAnim.interpolate({ inputRange: [0, 1], outputRange: [-screenWidth, 0] }),
+                translateX: titleGradientAnim.interpolate({ inputRange: [0, 1], outputRange: [-screenWidth * 0.5, 0] }), // Reducido proporcionalmente
               },
             ],
           }}
@@ -96,6 +69,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     position: 'relative',
+    width: '100%', // Asegurar ancho completo
+    overflow: 'hidden', // Prevenir overflow horizontal
   },
   titleMask: {
     borderRadius: 12,

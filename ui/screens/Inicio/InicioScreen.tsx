@@ -1,38 +1,43 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, StatusBar, Animated } from 'react-native';
-import BottomNav, { sampleBottomNavItems } from '../../../components/BottomNav';
+import BottomNav, { sampleBottomNavItems, BottomNavItem } from '../../../components/BottomNav';
 import AdsCard from '../../../components/AdsCard';
 import Hud from './components/Hud';
 import HeroSection from './components/HeroSection';
 import AdsButton from './components/AdsButton';
-import CollectionsChips from './components/CollectionsChips';
-import ContributeButton from './components/ContributeButton';
+// import CollectionsChips from './components/CollectionsChips'; // OCULTADO TEMPORALMENTE
+// import ContributeButton from './components/ContributeButton'; // OCULTADO TEMPORALMENTE
 import { SafeAreaView } from 'react-native-safe-area-context';
  
 import { colors } from '../../theme/colors';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import { UserProgressService } from '../../../services/UserProgressService';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-interface CollectionItem {
-  label: string;
-  icon: string;
-}
+// Colecciones removidas temporalmente - se pueden restaurar más tarde
+// interface CollectionItem {
+//   label: string;
+//   icon: string;
+// }
 
-const collections: ReadonlyArray<CollectionItem> = [
-  { label: 'Jerga básica', icon: '🎯' },
-  { label: 'Calle y broma', icon: '🚦' },
-  { label: 'Memes y virales', icon: '😂' },
-  { label: 'Criollísimo clásico', icon: '📜' },
-] as const;
+// const collections: ReadonlyArray<CollectionItem> = [
+//   { label: 'Jerga básica', icon: '🎯' },
+//   { label: 'Calle y broma', icon: '🚦' },
+//   { label: 'Memes y virales', icon: '😂' },
+//   { label: 'Criollísimo clásico', icon: '📜' },
+// ] as const;
 
 export const InicioScreen: React.FC = () => {
   const navigation = useNavigation();
-  const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  // const [selectedIndex, setSelectedIndex] = useState<number>(0); // Removido temporalmente
   const [showAdsCard, setShowAdsCard] = useState<boolean>(false);
-  const [scrollOffset, setScrollOffset] = useState<number>(0);
-  const [showLeftFade, setShowLeftFade] = useState<boolean>(true);
-  const [showRightFade, setShowRightFade] = useState<boolean>(true);
+  // const [scrollOffset, setScrollOffset] = useState<number>(0); // Removido temporalmente
+  // const [showLeftFade, setShowLeftFade] = useState<boolean>(true); // Removido temporalmente
+  // const [showRightFade, setShowRightFade] = useState<boolean>(true); // Removido temporalmente
+  const [userLevel, setUserLevel] = useState<number>(1);
+  const [userGems, setUserGems] = useState<number>(0);
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -41,23 +46,25 @@ export const InicioScreen: React.FC = () => {
   const borderAnim = useRef(new Animated.Value(0)).current;
   const scrollX = useRef(new Animated.Value(0)).current;
 
-  const selected = useMemo<CollectionItem>(() => collections[selectedIndex], [selectedIndex]);
+  // const selected = useMemo<CollectionItem>(() => collections[selectedIndex], [selectedIndex]); // Removido temporalmente
 
-  const prevCollection = (): void => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedIndex((prev) => (prev - 1 + collections.length) % collections.length);
-  };
+  // const prevCollection = (): void => {
+  //   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  //   setSelectedIndex((prev) => (prev - 1 + collections.length) % collections.length);
+  // };
 
-  const nextCollection = (): void => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedIndex((prev) => (prev + 1) % collections.length);
-  };
+  // const nextCollection = (): void => {
+  //   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  //   setSelectedIndex((prev) => (prev + 1) % collections.length);
+  // };
 
   const startMode = (modeKey: string): void => {
+    console.log('startMode llamado con:', modeKey);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     
     // Navegar según el modo seleccionado
     if (modeKey === 'jerga-basica') {
+      console.log('Navegando a JergaBasica...');
       // Iniciar animación de salida en paralelo a la navegación para solaparla con el slide horizontal del stack
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -76,7 +83,9 @@ export const InicioScreen: React.FC = () => {
           useNativeDriver: true,
         }),
       ]).start();
+      console.log('Ejecutando navigation.navigate...');
       navigation.navigate('JergaBasica' as never);
+      console.log('navigation.navigate ejecutado');
     } else {
       console.log('startMode', modeKey);
     }
@@ -84,20 +93,20 @@ export const InicioScreen: React.FC = () => {
 
   //
 
-  const handleScroll = (event: any) => {
-    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-    const scrollX = contentOffset.x;
-    const contentWidth = contentSize.width;
-    const screenWidth = layoutMeasurement.width;
+  // const handleScroll = (event: any) => {
+  //   const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+  //   const scrollX = contentOffset.x;
+  //   const contentWidth = contentSize.width;
+  //   const screenWidth = layoutMeasurement.width;
     
-    setScrollOffset(scrollX);
+  //   setScrollOffset(scrollX);
     
-    // Mostrar fade izquierdo siempre (siempre visible)
-    setShowLeftFade(true);
+  //   // Mostrar fade izquierdo siempre (siempre visible)
+  //   setShowLeftFade(true);
     
-    // Mostrar fade derecho si no hemos llegado al final
-    setShowRightFade(scrollX < contentWidth - screenWidth - 10);
-  };
+  //   // Mostrar fade derecho si no hemos llegado al final
+  //   setShowRightFade(scrollX < contentWidth - screenWidth - 10);
+  // };
 
   const goAportar = (): void => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -121,6 +130,46 @@ export const InicioScreen: React.FC = () => {
   const goRankings = (): void => {
     console.log('goRankings');
   };
+
+  const goToStore = (): void => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    navigation.navigate('Tienda' as never);
+  };
+
+  // Items del bottom nav con navegación personalizada
+  const bottomNavItems: ReadonlyArray<BottomNavItem> = useMemo(() => [
+    {
+      key: 'home',
+      label: 'Inicio',
+      icon: <MaterialCommunityIcons name="home" size={28} color={colors.primary} />,
+      isActive: true,
+    },
+    {
+      key: 'book',
+      label: 'Diccionario',
+      icon: <Ionicons name="book-outline" size={28} color={colors.gray} />,
+      disabled: true,
+    },
+    {
+      key: 'medal',
+      label: 'Logros',
+      icon: <Ionicons name="ribbon-outline" size={28} color={colors.gray} />,
+      disabled: true,
+    },
+    {
+      key: 'games',
+      label: 'Juegos',
+      icon: <MaterialCommunityIcons name="gamepad-square-outline" size={28} color={colors.gray} />,
+      disabled: true,
+    },
+    {
+      key: 'shop',
+      label: 'Tienda',
+      icon: <MaterialCommunityIcons name="storefront-outline" size={28} color={colors.primary} />,
+      badge: 1,
+      onPress: goToStore,
+    },
+  ], [navigation]);
 
   useEffect(() => {
     // Animación shimmer del nivel
@@ -174,9 +223,23 @@ export const InicioScreen: React.FC = () => {
     };
   }, [shimmerAnim, fadeAnim, slideAnim, scaleAnim, playButtonAnim, borderAnim]);
 
+  // Cargar progreso del usuario
+  const loadUserProgress = React.useCallback(async () => {
+    try {
+      const progress = await UserProgressService.getUserProgress();
+      setUserLevel(progress.currentLevel);
+      setUserGems(progress.gemsEarned);
+    } catch (error) {
+      console.error('Error loading user progress:', error);
+    }
+  }, []);
+
   // Efecto para reanimar cuando se regresa a la pantalla
   useFocusEffect(
     React.useCallback(() => {
+      // Cargar progreso del usuario cada vez que se enfoca la pantalla
+      loadUserProgress();
+      
       // Resetear animaciones cuando se regresa a la pantalla
       fadeAnim.setValue(0);
       slideAnim.setValue(12);
@@ -203,16 +266,16 @@ export const InicioScreen: React.FC = () => {
           useNativeDriver: true,
         }),
       ]).start();
-    }, [fadeAnim, slideAnim, scaleAnim])
+    }, [fadeAnim, slideAnim, scaleAnim, loadUserProgress])
   );
 
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      {/* Scrim sobre el fondo global */}
+      {/* Scrim más sutil para que se vea mejor el Liquid Glass */}
       <LinearGradient
-        colors={["rgba(255, 248, 225, 0.85)", "rgba(255, 248, 225, 0.95)"]}
+        colors={["rgba(255, 248, 225, 0.4)", "rgba(255, 248, 225, 0.6)"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.scrim}
@@ -224,26 +287,22 @@ export const InicioScreen: React.FC = () => {
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: scaleAnim }] }
         ]}>
         {/* HUD superior */}
-        <Hud shimmerAnim={shimmerAnim} slideAnim={slideAnim} />
+        <Hud shimmerAnim={shimmerAnim} slideAnim={slideAnim} userLevel={userLevel} userGems={userGems} />
 
-        {/* Hero con personaje con selector superpuesto a la altura de los pies */}
+        {/* Hero con personaje y contenido del juego */}
         <HeroSection 
-          selected={selected}
-          selectedIndex={selectedIndex}
-          collections={collections}
-          prevCollection={prevCollection}
-          nextCollection={nextCollection}
           playButtonAnim={playButtonAnim}
           onPlay={() => startMode('jerga-basica')}
+          userLevel={userLevel}
         />
 
         {/* Botón de Ads mejorado */}
         <AdsButton onPress={() => setShowAdsCard(true)} />
 
         <View style={styles.scroll}>
-          {/* Chips de colecciones */}
-          <View style={styles.collectionsHeader}>
-            <Text style={styles.collectionsTitle}>Colecciones pa’ vacilar</Text>
+          {/* Chips de colecciones - OCULTADO TEMPORALMENTE */}
+          {/* <View style={styles.collectionsHeader}>
+            <Text style={styles.collectionsTitle}>Colecciones pa' vacilar</Text>
             <Text style={[styles.collectionsSubtitle, styles.collectionsSubtitleEmphasis]}>Explora temas de calle, memes y clásico</Text>
           </View>
           <CollectionsChips 
@@ -251,15 +310,15 @@ export const InicioScreen: React.FC = () => {
             onScroll={handleScroll}
             showLeftFade={showLeftFade}
             showRightFade={showRightFade}
-          />
+          /> */}
 
-          {/* Botón Aportar mejorado */}
-          <ContributeButton onPress={goAportar} />
+          {/* Botón Aportar mejorado - OCULTADO TEMPORALMENTE */}
+          {/* <ContributeButton onPress={goAportar} /> */}
         </View>
         </Animated.View>
         {/* Footer navegación como componente */}
         <View style={{ transform: [{ translateY: 28 }] }}>
-          <BottomNav items={sampleBottomNavItems} />
+          <BottomNav items={bottomNavItems} />
         </View>
 
         {/* Ads Card Modal */}

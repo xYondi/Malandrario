@@ -76,12 +76,13 @@ export const sampleBottomNavItems: ReadonlyArray<BottomNavItem> = [
     label: 'Tienda',
     icon: <MaterialCommunityIcons name="storefront-outline" size={28} color={colors.primary} />,
     badge: 1,
+    onPress: () => console.log('Navigate to Store'),
   },
 ];
 
 const styles = StyleSheet.create({
   root: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: '#FFFFFF', // 100% blanco sólido
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     shadowColor: colors.shadow,

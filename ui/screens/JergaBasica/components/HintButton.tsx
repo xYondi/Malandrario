@@ -3,6 +3,7 @@ import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
+import GunIcon from '../../../../components/GunIcon';
 
 interface HintButtonProps {
   metras: number;
@@ -31,7 +32,7 @@ const HintButton: React.FC<HintButtonProps> = ({ metras, disabled, onPress, comp
         <View style={[compact ? styles.hintCostCompact : styles.hintCost, isDisabled && styles.hintCostDisabled]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Text style={[compact ? styles.hintCostTextCompact : styles.hintCostText, isDisabled && styles.hintCostDisabledText]}>1</Text>
-            <Ionicons name="diamond" size={compact ? 12 : 14} color={isDisabled ? '#9CA3AF' : '#0F172A'} />
+            <GunIcon size={compact ? 12 : 14} color={isDisabled ? '#9CA3AF' : '#0F172A'} />
           </View>
         </View>
       </LinearGradient>

@@ -1,9 +1,10 @@
 import React, { useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
 import * as Haptics from 'expo-haptics';
+import GunIcon from '../../../../components/GunIcon';
 
 interface ActionButtonProps {
   label?: string; // texto grande opcional
@@ -71,7 +72,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({ label, icon, colorsGradient
       {typeof cost === 'number' && (
         <Animated.View style={[styles.costBadge, { transform: [{ scale: pulseAnim }] }]}>
           <View style={styles.costBadgeInner}>
-            <MaterialCommunityIcons name="diamond-stone" size={12} color="#FACC15" />
+            <GunIcon size={12} color="#FACC15" />
             <Text style={styles.costText}>{cost}</Text>
           </View>
         </Animated.View>

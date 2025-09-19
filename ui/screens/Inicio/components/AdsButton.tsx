@@ -1,245 +1,159 @@
-import React, { useRef, useEffect } from 'react';
-import { TouchableOpacity, View, StyleSheet, Text, Animated, Easing } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { Pressable, View, StyleSheet, Text, Animated, Easing } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
+import GlassView from '../../../../components/GlassView';
+import * as Haptics from 'expo-haptics';
 
 interface AdsButtonProps {
   onPress: () => void;
 }
 
 const AdsButton: React.FC<AdsButtonProps> = ({ onPress }) => {
-  // Animaciones principales
-  const scaleAnim = useRef(new Animated.Value(1)).current; // respiración/bounce
-  const wobbleAnim = useRef(new Animated.Value(0)).current; // balanceo
-  const bobAnim = useRef(new Animated.Value(0)).current; // flotación eje Y
-  const shineAnim = useRef(new Animated.Value(0)).current; // barrido de brillo
-  const sparklesAnim = useRef(new Animated.Value(0)).current; // partículas
+  // Animaciones para efectos de liquid glass
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
+  const glassOpacityAnim = useRef(new Animated.Value(0.08)).current;
+  const rippleAnim = useRef(new Animated.Value(0)).current;
+  
+  // Estado para controlar efectos de presionar
+  const [isPressed, setIsPressed] = useState(false);
 
   useEffect(() => {
-    // Respiración (escala suave)
+    // Respiración muy sutil
     const breathe = Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, {
-          toValue: 1.06,
-          duration: 1200,
+          toValue: 1.02,
+          duration: 2000,
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 1200,
+          duration: 2000,
           easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    // Balanceo (wobble) tipo caricatura
-    const wobble = Animated.loop(
-      Animated.sequence([
-        Animated.timing(wobbleAnim, {
-          toValue: 1,
-          duration: 1800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(wobbleAnim, {
-          toValue: -1,
-          duration: 1800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    // Flotación vertical
-    const bob = Animated.loop(
-      Animated.sequence([
-        Animated.timing(bobAnim, {
-          toValue: 1,
-          duration: 1400,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(bobAnim, {
-          toValue: -1,
-          duration: 1400,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    // Barrido de brillo infinito
-    const shine = Animated.loop(
-      Animated.timing(shineAnim, {
-        toValue: 1,
-        duration: 2200,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    );
-
-    // Partículas intermitentes
-    const sparkles = Animated.loop(
-      Animated.sequence([
-        Animated.timing(sparklesAnim, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(sparklesAnim, {
-          toValue: 0,
-          duration: 900,
           useNativeDriver: true,
         }),
       ])
     );
 
     breathe.start();
-    wobble.start();
-    bob.start();
-    shine.start();
-    sparkles.start();
 
     return () => {
       breathe.stop();
-      wobble.stop();
-      bob.stop();
-      shine.stop();
-      sparkles.stop();
     };
   }, []);
 
-  const wobbleInterpolate = wobbleAnim.interpolate({
-    inputRange: [-1, 0, 1],
-    outputRange: ['-6deg', '0deg', '6deg'],
-  });
+  // Función para crear efecto ripple
+  const createRippleEffect = () => {
+    Animated.sequence([
+      Animated.timing(rippleAnim, { 
+        toValue: 1, 
+        duration: 300, 
+        useNativeDriver: true 
+      }),
+      Animated.timing(rippleAnim, { 
+        toValue: 0, 
+        duration: 200, 
+        useNativeDriver: true 
+      }),
+    ]).start();
+  };
 
-  const bobInterpolate = bobAnim.interpolate({
-    inputRange: [-1, 1],
-    outputRange: [4, -4],
-  });
+  // Función para efecto de presionar
+  const handlePressIn = () => {
+    setIsPressed(true);
+    Animated.parallel([
+      Animated.timing(scaleAnim, { 
+        toValue: 0.95, 
+        duration: 100, 
+        useNativeDriver: true 
+      }),
+      Animated.timing(opacityAnim, { 
+        toValue: 0.8, 
+        duration: 100, 
+        useNativeDriver: true 
+      }),
+      Animated.timing(glassOpacityAnim, { 
+        toValue: 0.2, 
+        duration: 100, 
+        useNativeDriver: false 
+      }),
+    ]).start();
+  };
+
+  // Función para efecto de soltar
+  const handlePressOut = () => {
+    setIsPressed(false);
+    Animated.parallel([
+      Animated.timing(scaleAnim, { 
+        toValue: 1, 
+        duration: 150, 
+        useNativeDriver: true 
+      }),
+      Animated.timing(opacityAnim, { 
+        toValue: 1, 
+        duration: 150, 
+        useNativeDriver: true 
+      }),
+      Animated.timing(glassOpacityAnim, { 
+        toValue: 0.08, 
+        duration: 150, 
+        useNativeDriver: false 
+      }),
+    ]).start();
+  };
 
   const handlePress = () => {
-    // Squash and stretch al presionar
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.92,
-        duration: 80,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 4,
-        tension: 140,
-        useNativeDriver: true,
-      }),
-    ]).start(() => onPress());
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    createRippleEffect();
+    onPress();
   };
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={styles.adsButton}
       onPress={handlePress}
-      activeOpacity={0.9}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
     >
       <Animated.View
         style={[
           styles.container,
           {
-            transform: [
-              { scale: scaleAnim },
-              { rotate: wobbleInterpolate },
-              { translateY: bobInterpolate },
-            ],
+            transform: [{ scale: scaleAnim }],
+            opacity: opacityAnim,
           },
         ]}
       >
-        {/* Estallido (starburst) de fondo */}
-        <View style={styles.starburstContainer} pointerEvents="none">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <View
-              key={`ray-${index}`}
-              style={[
-                styles.ray,
-                { transform: [{ rotate: `${index * 18}deg` }] },
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Sombra base tipo sticker */}
-        <View style={styles.shadow} />
-
-        {/* Botón principal con borde grueso */}
-        <View style={styles.mainButton}>
-          {/* Capa interior para simular volumen */}
-          <View style={styles.innerButton} />
-
-          {/* Barrido de brillo */}
-          <Animated.View
+        {/* Botón con efecto Liquid Glass */}
+        <View style={styles.gameIcon}>
+          {/* GlassView VACÍO solo como fondo decorativo */}
+          <GlassView 
+            style={styles.glassBackground}
+            glassEffectStyle="clear"
+            isInteractive={true}
+            tintColor={`rgba(30, 58, 138, ${glassOpacityAnim})`}
+          />
+          {/* Efecto ripple */}
+          <Animated.View 
             style={[
-              styles.shine,
+              styles.rippleEffect,
               {
-                transform: [
-                  {
-                    translateX: shineAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-60, 60],
-                    }),
-                  },
-                  { rotate: '-25deg' },
-                ],
-              },
+                transform: [{ scale: rippleAnim }],
+                opacity: rippleAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 0.3]
+                })
+              }
             ]}
           />
-
-          {/* Contenido: icono y texto */}
-          <View style={styles.content}>
-            <View style={styles.iconBadge}>
-              <Text style={styles.iconText}>▶</Text>
-            </View>
-            <Text style={styles.adsText}>ADS</Text>
-          </View>
+          {/* Contenido nítido encima del vidrio */}
+          <Ionicons name="play" size={28} color="#FFFFFF" />
         </View>
-
-        {/* Cinta tipo badge */}
-        <View style={styles.ribbonContainer} pointerEvents="none">
-          <View style={styles.ribbon}>
-            <Text style={styles.ribbonText}>BONUS</Text>
-          </View>
-          <View style={styles.ribbonTailLeft} />
-          <View style={styles.ribbonTailRight} />
-        </View>
-
-        {/* Estrellas decorativas */}
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.sparkle,
-            styles.sparkle1,
-            { opacity: sparklesAnim },
-          ]}
-        />
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.sparkle,
-            styles.sparkle2,
-            { opacity: sparklesAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] }) },
-          ]}
-        />
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.sparkle,
-            styles.sparkle3,
-            { opacity: sparklesAnim },
-          ]}
-        />
       </Animated.View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -248,175 +162,52 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     top: 80,
+    zIndex: 10, // Asegurar que esté por encima
   },
   container: {
     position: 'relative',
   },
-  shadow: {
-    position: 'absolute',
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    top: 8,
-    left: 8,
-  },
-  mainButton: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: colors.yellowPrimary,
+  gameIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    borderWidth: 6,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    elevation: 12,
-  },
-  innerButton: {
-    position: 'absolute',
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: colors.yellowDark,
-    opacity: 0.25,
-  },
-  content: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  iconBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.red,
-    borderWidth: 3,
-    borderColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  iconText: {
-    fontSize: 20,
-    color: 'white',
-    fontWeight: '900',
-    textShadowColor: 'rgba(0,0,0,0.25)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  adsText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: colors.primary,
-    letterSpacing: 1.4,
-    textShadowColor: 'rgba(255,255,255,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  // Estallido
-  starburstContainer: {
-    position: 'absolute',
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ray: {
-    position: 'absolute',
-    width: 12,
-    height: 54,
-    borderRadius: 6,
-    backgroundColor: colors.bluePrimary,
-    opacity: 0.5,
-  },
-  // Brillo en barrido
-  shine: {
-    position: 'absolute',
-    width: 34,
-    height: 140,
-    backgroundColor: 'rgba(255,255,255,0.35)',
-    top: -26,
-    left: 0,
-    borderRadius: 16,
-  },
-  // Cinta superior
-  ribbonContainer: {
-    position: 'absolute',
-    top: -6,
-    alignSelf: 'center',
-    alignItems: 'center',
-  },
-  ribbon: {
-    backgroundColor: colors.red,
-    paddingHorizontal: 12,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 3,
-    borderColor: colors.primary,
-  },
-  ribbonText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.2,
-  },
-  ribbonTailLeft: {
-    position: 'absolute',
-    left: -8,
-    top: 8,
-    width: 10,
-    height: 10,
-    backgroundColor: colors.red,
-    borderColor: colors.primary,
-    borderLeftWidth: 3,
-    borderBottomWidth: 3,
-    transform: [{ rotate: '45deg' }],
-  },
-  ribbonTailRight: {
-    position: 'absolute',
-    right: -8,
-    top: 8,
-    width: 10,
-    height: 10,
-    backgroundColor: colors.red,
-    borderColor: colors.primary,
-    borderRightWidth: 3,
-    borderBottomWidth: 3,
-    transform: [{ rotate: '-45deg' }],
-  },
-  // Estrellas
-  sparkle: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'white',
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 0 },
+    // Bordes Liquid Glass azul para botón prominente
+    borderWidth: 1.5,
+    borderColor: 'rgba(30, 58, 138, 0.6)', // Azul
+    shadowColor: 'rgba(30, 58, 138, 0.5)', // Azul
     shadowOpacity: 0.9,
-    shadowRadius: 4,
-    elevation: 6,
+    shadowRadius: 3, // Aumentado un poco para mejor efecto
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
-  sparkle1: {
-    top: 6,
-    right: -2,
-    backgroundColor: colors.yellowPrimary,
+  glassBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 28,
   },
-  sparkle2: {
-    bottom: 10,
-    left: -4,
-    backgroundColor: colors.bluePrimary,
-  },
-  sparkle3: {
-    bottom: 2,
-    right: 8,
-    backgroundColor: colors.yellowDark,
+
+  // Efecto ripple para liquid glass
+  rippleEffect: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 28,
+    backgroundColor: 'rgba(30, 58, 138, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(30, 58, 138, 0.5)',
+    shadowColor: 'rgba(30, 58, 138, 0.8)',
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
 });
 

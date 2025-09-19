@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
+import GunIcon from '../../../../components/GunIcon';
 
 interface VictoryModalProps {
   visible: boolean;
@@ -68,7 +69,7 @@ export const DefeatModal: React.FC<DefeatModalProps> = ({ visible, defeatAnim, o
             <LinearGradient colors={['#FACC15', '#F59E0B']} style={styles.modalButtonGradient}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={styles.modalButtonText}>Continuar (2</Text>
-                <Ionicons name="diamond" size={16} color="#0F172A" />
+                <GunIcon size={16} color="#0F172A" />
                 <Text style={styles.modalButtonText}>)</Text>
               </View>
             </LinearGradient>

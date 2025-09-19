@@ -9,6 +9,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import SplashScreen from './components/SplashScreen';
 import InicioScreen from './ui/screens/Inicio/InicioScreen';
 import JergaBasicaScreen from './ui/screens/JergaBasica/JergaBasicaScreen';
+import TiendaScreen from './ui/screens/Tienda/TiendaScreen';
 
 const Stack = createStackNavigator();
 
@@ -68,6 +69,7 @@ export default function App() {
               >
                 <Stack.Screen name="Inicio" component={InicioScreen} />
                 <Stack.Screen name="JergaBasica" component={JergaBasicaScreen} />
+                <Stack.Screen name="Tienda" component={TiendaScreen} />
               </Stack.Navigator>
             </NavigationContainer>
           )}
