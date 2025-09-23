@@ -44,6 +44,8 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [slotScaleAnimations, setSlotScaleAnimations] = useState<{[key: number]: Animated.Value}>({});
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const correctSoundRef = useRef<any>(null);
 
   // Calcular distribución de slots
   const gap = 3;
@@ -83,6 +85,40 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
     .replace(/\s+/g, ' ')
     .trim();
 
+  // Función para reproducir sonido de acierto
+  const playCorrectSound = async () => {
+    try {
+      console.log('🔊 Intentando reproducir sonido de acierto...');
+      let s: any = correctSoundRef.current;
+      if (!s) {
+        console.log('🔊 Sonido no cargado, cargando...');
+        // Carga perezosa si aún no está cargado
+        try {
+          const ExpoAV: any = require('expo-av');
+          const res = await ExpoAV.Audio.Sound.createAsync(
+            require('../../../../../assets/sounds/correct.wav')
+          );
+          s = res.sound;
+          correctSoundRef.current = s;
+          try { await s.setVolumeAsync(0.9); } catch {}
+          console.log('🔊 Sonido cargado exitosamente');
+        } catch (e) {
+          console.error('🔊 Error cargando sonido:', e);
+        }
+      }
+      if (s) {
+        try { await s.stopAsync(); } catch {}
+        try { await s.setPositionAsync(0); } catch {}
+        await s.playAsync();
+        console.log('🔊 Sonido reproducido exitosamente');
+      } else {
+        console.log('🔊 No se pudo cargar el sonido');
+      }
+    } catch (e) {
+      console.error('🔊 Error reproduciendo sonido:', e);
+    }
+  };
+
   const isComplete = useMemo(() => {
     for (let i = 0; i < slots.length; i++) {
       if (slots[i] === ' ') continue;
@@ -90,6 +126,39 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
     }
     return slots.length > 0;
   }, [filled, slots]);
+
+  // Cargar sonido de acierto
+  useEffect(() => {
+    let isMounted = true;
+    const loadSound = async () => {
+      try {
+        const ExpoAV: any = require('expo-av');
+        // Configurar modo de audio (iOS silencioso, ducking en Android)
+        try {
+          await ExpoAV.Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            allowsRecordingIOS: false,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          });
+        } catch {}
+        const { sound } = await ExpoAV.Audio.Sound.createAsync(
+          require('../../../../../assets/sounds/correct.wav')
+        );
+        if (isMounted) correctSoundRef.current = sound;
+        try { await sound.setVolumeAsync(0.9); } catch {}
+      } catch (e) {
+        // Silencioso si no existe el archivo o falla la carga
+        correctSoundRef.current = null;
+      }
+    };
+    loadSound();
+    return () => {
+      isMounted = false;
+      try { correctSoundRef.current?.unloadAsync(); } catch {}
+    };
+  }, []);
 
   // Resetear estado cuando cambia la pregunta
   useEffect(() => {
@@ -133,6 +202,7 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
     setShowResult(null);
     resultAnim.setValue(0);
     setHasSubmitted(false);
+    setSelectedIndex(null);
   }, [normalizedAnswer]);
 
   const handleKey = (key: string) => {
@@ -162,16 +232,26 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
       }),
     ]).start();
 
+    // Priorizar baldosa seleccionada si existe
     let insertIndex = -1;
-    for (let i = 0; i < slots.length; i++) {
-      if (slots[i] === ' ') continue;
-      if (!filled[i]) {
-        insertIndex = i;
-        break;
+    if (selectedIndex !== null && slots[selectedIndex] !== ' ') {
+      insertIndex = selectedIndex;
+    } else {
+      // Comportamiento por defecto: primer slot vacío
+      for (let i = 0; i < slots.length; i++) {
+        if (slots[i] === ' ') continue;
+        if (!filled[i]) {
+          insertIndex = i;
+          break;
+        }
       }
     }
 
     if (insertIndex !== -1) {
+      // Si estábamos reemplazando en una baldosa seleccionada, limpiar selección YA
+      if (selectedIndex !== null) {
+        setSelectedIndex(null);
+      }
       const letterAnim = new Animated.Value(0);
       setLetterAnimations(prev => ({ ...prev, [insertIndex]: letterAnim }));
       
@@ -196,12 +276,18 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
     
     setHasSubmitted(false);
     
+    // Si hay una baldosa seleccionada con letra, eliminar esa
     let removeIndex = -1;
-    for (let i = slots.length - 1; i >= 0; i--) {
-      if (slots[i] === ' ') continue;
-      if (filled[i]) { 
-        removeIndex = i; 
-        break; 
+    if (selectedIndex !== null && slots[selectedIndex] !== ' ' && filled[selectedIndex]) {
+      removeIndex = selectedIndex;
+    } else {
+      // Comportamiento por defecto: eliminar la última letra ingresada
+      for (let i = slots.length - 1; i >= 0; i--) {
+        if (slots[i] === ' ') continue;
+        if (filled[i]) { 
+          removeIndex = i; 
+          break; 
+        }
       }
     }
 
@@ -222,15 +308,65 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
         const next = [...filled];
         next[removeIndex] = '';
         setFilled(next);
+        // Mantener selección en el mismo índice; si no había selección, no cambiar nada
       });
     }
   };
 
   const handleClear = () => { 
-    if (!disabled) {
-      setFilled(Array(slots.length).fill(''));
-      setHasSubmitted(false);
+    if (disabled || isAnimating) return;
+    
+    // Encontrar todas las letras llenas
+    const indices: number[] = [];
+    for (let i = slots.length - 1; i >= 0; i--) {
+      if (slots[i] === ' ') continue;
+      if (filled[i]) indices.push(i);
     }
+    
+    if (indices.length === 0) {
+      setHasSubmitted(false);
+      setSelectedIndex(null);
+      return;
+    }
+    
+    setHasSubmitted(false);
+    setSelectedIndex(null);
+    setIsAnimating(true);
+    
+    // Borrar secuencialmente desde el final
+    let step = 0;
+    const runStep = () => {
+      if (step >= indices.length) {
+        setIsAnimating(false);
+        return;
+      }
+      
+      const idx = indices[step];
+      const removeAnim = new Animated.Value(1);
+      setRemovingLetter({ index: idx, anim: removeAnim });
+      
+      Animated.timing(removeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(() => {
+        setRemovingLetter(null);
+        // Usar actualización funcional para evitar revivir letras por cierres antiguos
+        setFilled(prev => {
+          const next = [...prev];
+          next[idx] = '';
+          return next;
+        });
+        step += 1;
+        
+        // Continuar con la siguiente letra después de un pequeño delay
+        setTimeout(() => {
+          runStep();
+        }, 50);
+      });
+    };
+    
+    runStep();
   };
 
   // Auto-submit cuando se completa
@@ -243,6 +379,9 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
       setShowResult(isCorrect ? 'correct' : 'incorrect');
       
       if (isCorrect) {
+        // Reproducir sonido inmediatamente cuando se detecta respuesta correcta
+        playCorrectSound();
+        
         slots.forEach((ch, index) => {
           if (ch !== ' ') {
             setTimeout(() => {
@@ -447,6 +586,30 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
         letterAnimations={letterAnimations}
         removingLetter={removingLetter}
         slotDistribution={slotDistribution}
+        selectedIndex={selectedIndex}
+        onSelectSlot={(idx: number) => {
+          if (disabled || showResult) return;
+          setSelectedIndex(idx);
+          // Si la baldosa tiene una letra, eliminarla con animación
+          if (slots[idx] !== ' ' && filled[idx]) {
+            onInputChange?.();
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            const removeAnim = new Animated.Value(1);
+            setRemovingLetter({ index: idx, anim: removeAnim });
+            Animated.timing(removeAnim, {
+              toValue: 0,
+              duration: 220,
+              useNativeDriver: true,
+            }).start(() => {
+              setRemovingLetter(null);
+              setFilled(prev => {
+                const next = [...prev];
+                next[idx] = '';
+                return next;
+              });
+            });
+          }
+        }}
       />
       
       <KeyboardPanel

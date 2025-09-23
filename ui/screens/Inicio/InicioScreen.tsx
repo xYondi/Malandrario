@@ -5,6 +5,8 @@ import AdsCard from '../../../components/AdsCard';
 import Hud from './components/Hud';
 import HeroSection from './components/HeroSection';
 import AdsButton from './components/AdsButton';
+import DictionaryButton from './components/DictionaryButton';
+import DictionarySheet from './components/DictionarySheet';
 // import CollectionsChips from './components/CollectionsChips'; // OCULTADO TEMPORALMENTE
 // import ContributeButton from './components/ContributeButton'; // OCULTADO TEMPORALMENTE
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -38,6 +40,7 @@ export const InicioScreen: React.FC = () => {
   // const [showRightFade, setShowRightFade] = useState<boolean>(true); // Removido temporalmente
   const [userLevel, setUserLevel] = useState<number>(1);
   const [userGems, setUserGems] = useState<number>(0);
+  const [showDictionary, setShowDictionary] = useState<boolean>(false);
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -124,7 +127,7 @@ export const InicioScreen: React.FC = () => {
   };
 
   const goDiccionario = (): void => {
-    console.log('goDiccionario');
+    setShowDictionary(true);
   };
 
   const goRankings = (): void => {
@@ -143,12 +146,6 @@ export const InicioScreen: React.FC = () => {
       label: 'Inicio',
       icon: <MaterialCommunityIcons name="home" size={28} color={colors.primary} />,
       isActive: true,
-    },
-    {
-      key: 'book',
-      label: 'Diccionario',
-      icon: <Ionicons name="book-outline" size={28} color={colors.gray} />,
-      disabled: true,
     },
     {
       key: 'medal',
@@ -234,6 +231,40 @@ export const InicioScreen: React.FC = () => {
     }
   }, []);
 
+  // Construye lista de palabras desbloqueadas a partir de niveles completados
+  const getUnlockedWords = (): ReadonlyArray<string> => {
+    const words: string[] = [];
+    // Inferimos niveles completados como todos por debajo del nivel actual
+    const completedLevels = new Set<number>();
+    for (let lvl = 1; lvl < userLevel; lvl++) {
+      completedLevels.add(lvl);
+    }
+
+    try {
+      // Carga perezosa para evitar ciclos
+      const { ALL_LEVELS } = require('../JergaBasica/data/questions');
+      completedLevels.forEach((lvl) => {
+        const levelQuestions = (ALL_LEVELS as any)[lvl] || [];
+        levelQuestions.forEach((q: any) => {
+          if (typeof q.a === 'string') {
+            words.push(String(q.a).toLowerCase());
+          }
+          if (Array.isArray(q.accepted)) {
+            q.accepted.forEach((alt: string) => words.push(String(alt).toLowerCase()));
+          }
+        });
+      });
+    } catch (e) {
+      // Ignorar si falla la carga
+    }
+
+    const normalized = words
+      .map((w) => w.normalize('NFD').replace(/\p{Diacritic}/gu, '').trim())
+      .filter((w) => w.length > 0);
+
+    return Array.from(new Set(normalized));
+  };
+
   // Efecto para reanimar cuando se regresa a la pantalla
   useFocusEffect(
     React.useCallback(() => {
@@ -298,6 +329,8 @@ export const InicioScreen: React.FC = () => {
 
         {/* Botón de Ads mejorado */}
         <AdsButton onPress={() => setShowAdsCard(true)} />
+        {/* Botón Diccionario (lado izquierdo) */}
+        <DictionaryButton onPress={goDiccionario} />
 
         <View style={styles.scroll}>
           {/* Chips de colecciones - OCULTADO TEMPORALMENTE */}
@@ -327,6 +360,18 @@ export const InicioScreen: React.FC = () => {
           onClose={() => setShowAdsCard(false)}
           onPurchase={handlePurchase}
           onWatchAd={handleWatchAd}
+        />
+
+        {/* Dictionary Sheet */}
+        <DictionarySheet
+          visible={showDictionary}
+          onClose={() => setShowDictionary(false)}
+          words={getUnlockedWords()}
+          onSelectWord={(word) => {
+            setShowDictionary(false);
+            // Navegar a JergaBasica con parámetro de palabra objetivo
+            (navigation as any).navigate('JergaBasica', { targetWord: word });
+          }}
         />
     </SafeAreaView>
   );

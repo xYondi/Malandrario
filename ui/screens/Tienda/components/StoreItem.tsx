@@ -10,8 +10,8 @@ interface StoreItemProps {
   price: string;
   originalPrice?: string;
   discount?: string;
-  color: string;
-  darkColor: string;
+  color?: string;
+  darkColor?: string;
   onPurchase: () => void;
   isPopular?: boolean;
   isBestValue?: boolean;
@@ -131,9 +131,18 @@ const StoreItem: React.FC<StoreItemProps> = ({
         </Animated.View>
       )}
 
-      <TouchableOpacity style={styles.cartoonCardContent} onPress={handlePress} activeOpacity={0.9}>
-        {/* Fondo blanco estilo cartoon */}
-        <View style={styles.cartoonCardMain}>
+      <TouchableOpacity
+        style={styles.cartoonCardContent}
+        onPress={handlePress}
+        activeOpacity={0.9}
+        accessibilityRole="button"
+        accessibilityLabel={`Comprar paquete ${title} de ${amount} pistolitas por ${price}`}
+        testID={`store-item-${title}`}
+      >
+        {/* Wrapper de sombra externo para evitar clipping con bordes redondeados */}
+        <View style={styles.shadowWrapper}>
+          {/* Fondo blanco estilo cartoon */}
+          <View style={styles.cartoonCardMain}>
           {/* Contenido vertical */}
           <View style={styles.cartoonContent}>
             {/* Stack de pistolitas según cantidad */}
@@ -165,18 +174,6 @@ const StoreItem: React.FC<StoreItemProps> = ({
             {/* Número grande azul */}
             <Text style={styles.cartoonNumber}>{amount}</Text>
 
-            {/* Precio original tachado si existe */}
-            {originalPrice && (
-              <View style={styles.originalPriceContainer}>
-                <Text style={styles.originalPriceText}>{originalPrice}</Text>
-                {discount && (
-                  <View style={styles.discountBadge}>
-                    <Text style={styles.discountText}>{discount}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
             {/* Botón de precio amarillo */}
             <View style={styles.priceButton}>
               <View style={styles.priceButtonMain}>
@@ -184,6 +181,21 @@ const StoreItem: React.FC<StoreItemProps> = ({
                 <Text style={styles.priceButtonText}>{price}</Text>
               </View>
             </View>
+
+            {/* Área de precio original/desc. ahora debajo del botón */}
+            <View style={styles.originalPriceContainer}>
+              {originalPrice ? (
+                <>
+                  <Text style={styles.originalPriceText}>{originalPrice}</Text>
+                  {discount && (
+                    <View style={styles.discountBadge}>
+                      <Text style={styles.discountText}>{discount}</Text>
+                    </View>
+                  )}
+                </>
+              ) : null}
+            </View>
+          </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -223,66 +235,51 @@ const styles = StyleSheet.create({
   },
   cartoonCardContent: {
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: 'visible',
+  },
+  shadowWrapper: {
+    borderRadius: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
   },
   cartoonCardMain: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 16,
-    height: 180,
-    borderWidth: 3,
+    paddingBottom: 16,
+    height: 200,
+    borderWidth: 2,
     borderColor: '#E5E7EB',
-    shadowColor: '#D1D5DB',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.8,
-    shadowRadius: 0,
-    elevation: 8,
+    // Sin sombra aquí para que no se corte con el borde redondeado
   },
   cartoonContent: {
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 6,
+    gap: 4,
   },
   coinsStackContainer: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 4,
   },
   coinShadow: {
     position: 'absolute',
-    bottom: -8,
-    width: 50,
-    height: 12,
+    bottom: -6,
+    width: 40,
+    height: 8,
     borderRadius: 25,
     backgroundColor: 'rgba(0,0,0,0.1)',
   },
   singleCoin: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FACC15',
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 0,
-    elevation: 4,
-  },
-  multiCoinsContainer: {
-    position: 'relative',
-    width: 80,
-    height: 70,
-  },
-  stackedCoin: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: '#FACC15',
     borderWidth: 3,
     borderColor: '#FFFFFF',
@@ -290,39 +287,61 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.5,
     shadowRadius: 0,
     elevation: 3,
   },
+  multiCoinsContainer: {
+    position: 'relative',
+    width: 56,
+    height: 48,
+  },
+  stackedCoin: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FACC15',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 0,
+    elevation: 2,
+  },
   coin1: {
     top: 0,
-    left: 15,
+    left: 10,
     zIndex: 3,
   },
   coin2: {
-    top: 8,
-    left: 8,
+    top: 4,
+    left: 4,
     zIndex: 2,
   },
   coin3: {
-    top: 16,
+    top: 8,
     left: 0,
     zIndex: 1,
   },
   cartoonNumber: {
-    fontSize: 36,
+    fontSize: 22,
     fontWeight: '900',
-    color: '#2E6CA8',
-    marginBottom: 12,
-    textShadowColor: 'rgba(46, 108, 168, 0.2)',
-    textShadowOffset: { width: 2, height: 2 },
+    color: '#1E3A8A',
+    marginBottom: 2,
+    textShadowColor: 'transparent',
+    textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 0,
   },
   originalPriceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 8,
+    minHeight: 18,
+    marginBottom: 4,
   },
   originalPriceText: {
     fontSize: 14,
@@ -345,38 +364,43 @@ const styles = StyleSheet.create({
   },
   priceButton: {
     width: '100%',
+    marginTop: 4,
+    alignSelf: 'stretch',
   },
   priceButtonMain: {
     backgroundColor: '#FACC15',
     borderRadius: 25,
-    paddingVertical: 12,
+    paddingVertical: 9,
     position: 'relative',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderWidth: 0,
     shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 0,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: 'hidden',
   },
   priceButtonShadow: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: '40%',
-    backgroundColor: '#F59E0B',
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
+    height: '28%',
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    // Redondear también arriba para que no se vea corte duro
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
   },
   priceButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     color: '#FFFFFF',
     textAlign: 'center',
     zIndex: 2,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 1, height: 1 },
+    textShadowColor: 'transparent',
+    textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 0,
   },
 });

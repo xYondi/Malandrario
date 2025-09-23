@@ -10,28 +10,28 @@ const NoAdsCard: React.FC<NoAdsCardProps> = ({ onPurchase }) => {
   return (
     <View style={styles.noAdsCard}>
       <TouchableOpacity style={styles.noAdsContent} onPress={onPurchase} activeOpacity={0.8}>
-        <View style={[styles.noAdsMain, { backgroundColor: '#EF4444' }]}>
-          <View style={[styles.noAdsBottom, { backgroundColor: '#DC2626' }]} />
+        <View style={[styles.noAdsMain, { backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderWidth: 2 }]}>
+          <View style={[styles.noAdsBottom, { backgroundColor: 'rgba(0,0,0,0.06)' }]} />
           <View style={styles.noAdsDivider} />
           
           <View style={styles.noAdsLayout}>
             <View style={styles.noAdsIconContainer}>
-              <View style={[styles.noAdsIconBg, { backgroundColor: '#DC2626' }]}>
-                <Ionicons name="remove-circle" size={32} color="#FFFFFF" />
+              <View style={[styles.noAdsIconBg, { backgroundColor: '#F1F5F9', borderColor: '#E5E7EB', borderWidth: 2 }]}>
+                <Ionicons name="remove-circle" size={32} color="#1E3A8A" />
               </View>
             </View>
             
             <View style={styles.noAdsTextContainer}>
-              <Text style={styles.noAdsTitle}>Quitar Anuncios</Text>
-              <Text style={styles.noAdsDescription}>Elimina todos los anuncios para siempre</Text>
-              <Text style={styles.noAdsPrice}>$5.99</Text>
+              <Text style={[styles.noAdsTitle, { color: '#0F172A', textShadowColor: 'transparent' }]}>Quitar Anuncios</Text>
+              <Text style={[styles.noAdsDescription, { color: '#475569' }]}>Elimina todos los anuncios para siempre</Text>
+              <Text style={[styles.noAdsPrice, { color: '#1E3A8A', textShadowColor: 'transparent' }]}>$4.99</Text>
             </View>
             
             <View style={styles.noAdsPurchaseButton}>
-              <View style={[styles.noAdsButtonMain, { backgroundColor: '#FACC15' }]}>
-                <View style={[styles.noAdsButtonBottom, { backgroundColor: '#B8860B' }]} />
+              <View style={[styles.noAdsButtonMain, { backgroundColor: '#FACC15', borderWidth: 0, shadowOpacity: 0.25, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } as any }]}>
+                <View style={[styles.noAdsButtonBottom, { backgroundColor: '#F59E0B' }]} />
                 <View style={styles.noAdsButtonDivider} />
-                <Text style={styles.noAdsButtonText}>COMPRAR</Text>
+                <Text style={[styles.noAdsButtonText, { color: '#1E3A8A', textShadowColor: 'transparent' }]}>COMPRAR</Text>
               </View>
             </View>
           </View>

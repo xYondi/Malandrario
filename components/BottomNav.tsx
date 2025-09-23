@@ -54,12 +54,6 @@ export const sampleBottomNavItems: ReadonlyArray<BottomNavItem> = [
     isActive: true,
   },
   {
-    key: 'book',
-    label: 'Diccionario',
-    icon: <Ionicons name="book-outline" size={28} color={colors.gray} />, // inactivo
-    disabled: true,
-  },
-  {
     key: 'medal',
     label: 'Logros',
     icon: <Ionicons name="ribbon-outline" size={28} color={colors.gray} />, // inactivo

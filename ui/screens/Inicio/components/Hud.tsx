@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import GunIcon from '../../../../components/GunIcon';
 import GlassView from '../../../../components/GlassView';
 import * as Haptics from 'expo-haptics';
+import { useNavigation } from '@react-navigation/native';
 
 interface HudProps {
   shimmerAnim: Animated.Value;
@@ -14,6 +15,7 @@ interface HudProps {
 }
 
 const Hud: React.FC<HudProps> = ({ shimmerAnim, slideAnim, userLevel = 1, userGems = 0 }) => {
+  const navigation = useNavigation();
   // Animaciones para efectos de liquid glass
   const settingsScaleAnim = useRef(new Animated.Value(1)).current;
   const settingsOpacityAnim = useRef(new Animated.Value(1)).current;
@@ -244,14 +246,20 @@ const Hud: React.FC<HudProps> = ({ shimmerAnim, slideAnim, userLevel = 1, userGe
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     createRippleEffect(levelRippleAnim);
     animateLevel(); // Animar el texto de nivel
-    console.log('level info');
+    setTimeout(() => {
+      (navigation as any).navigate('LevelHub');
+    }, 180);
   };
 
   const handleGunsPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     createRippleEffect(gunsRippleAnim);
     animateGuns(); // Animar pistolitas y botón plus
-    console.log('guns info');
+    // Navegar a Tienda enfocando la sección de Pistolitas
+    setTimeout(() => {
+      console.log('[HUD] Navigating to Tienda with section=pistolitas');
+      (navigation as any).navigate('Tienda', { section: 'pistolitas' });
+    }, 180);
   };
 
   return (

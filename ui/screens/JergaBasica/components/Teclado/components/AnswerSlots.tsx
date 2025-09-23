@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity } from 'react-native';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -12,6 +12,8 @@ interface AnswerSlotsProps {
   letterAnimations: {[key: number]: Animated.Value};
   removingLetter: {index: number, anim: Animated.Value} | null;
   slotDistribution: { rows: number; maxPerRow: number };
+  selectedIndex?: number | null;
+  onSelectSlot?: (idx: number) => void;
 }
 
 const AnswerSlots: React.FC<AnswerSlotsProps> = ({
@@ -22,7 +24,9 @@ const AnswerSlots: React.FC<AnswerSlotsProps> = ({
   slotScaleAnimations,
   letterAnimations,
   removingLetter,
-  slotDistribution
+  slotDistribution,
+  selectedIndex = null,
+  onSelectSlot
 }) => {
   const horizontalPadding = 32;
   const gap = 3;
@@ -44,6 +48,17 @@ const AnswerSlots: React.FC<AnswerSlotsProps> = ({
     return [slots.slice(0, midPoint), slots.slice(midPoint)];
   }, [slots, slotDistribution.rows]);
 
+  // Animación de selección (levitar)
+  const selectedAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(selectedAnim, {
+      toValue: selectedIndex !== null ? 1 : 0,
+      tension: 140,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
+  }, [selectedIndex, selectedAnim]);
+
   return (
     <View style={styles.slotsContainer}>
       {slotRows.map((row, rowIndex) => (
@@ -62,92 +77,110 @@ const AnswerSlots: React.FC<AnswerSlotsProps> = ({
             const scaleAnim = slotScaleAnimations[globalIdx];
             
             return (
-              <Animated.View
+              <TouchableOpacity
                 key={`slot-${globalIdx}`}
-                style={[
-                  styles.slot,
-                  { width: computedSlotSize, height: computedSlotSize + 8 },
-                  globalIdx === currentIndex && !showResult && styles.slotActive,
-                  !!filled[globalIdx] && !showResult && styles.slotFilled,
-                  // Estados de resultado con animación
-                  showResult === 'correct' && styles.slotCorrect,
-                  showResult === 'incorrect' && styles.slotIncorrect,
-                  {
-                    opacity: scaleAnim || 1,
-                    transform: [
-                      {
-                        scale: scaleAnim ? scaleAnim.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [0, 1.2, 1],
-                        }) : 1,
-                      },
-                      {
-                        translateY: scaleAnim ? scaleAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [30, 0],
-                        }) : 0,
-                      },
-                      {
-                        rotateY: scaleAnim ? scaleAnim.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: ['90deg', '45deg', '0deg'],
-                        }) : '0deg',
-                      },
-                    ],
-                  },
-                ]}
+                activeOpacity={0.9}
+                onPress={() => onSelectSlot && onSelectSlot(globalIdx)}
               >
-                {ch !== ' ' && (
-                  <Animated.View
-                    style={[
-                      styles.letterContainer,
-                      letterAnim && {
-                        transform: [
-                          {
-                            scale: letterAnim.interpolate({
-                              inputRange: [0, 0.5, 1],
-                              outputRange: [0, 1.2, 1],
-                            }),
-                          },
-                          {
-                            rotate: letterAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: ['180deg', '0deg'],
-                            }),
-                          },
-                        ],
-                        opacity: letterAnim,
-                      },
-                      isRemoving && removeAnim && {
-                        transform: [
-                          {
-                            scale: removeAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [0, 1],
-                            }),
-                          },
-                          {
-                            rotate: removeAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: ['0deg', '-180deg'],
-                            }),
-                          },
-                        ],
-                        opacity: removeAnim,
-                      },
-                    ]}
-                  >
-                    <Text style={[
-                      styles.slotText, 
-                      globalIdx === currentIndex && !showResult && styles.slotTextActive,
-                      showResult === 'correct' && styles.slotTextCorrect,
-                      showResult === 'incorrect' && styles.slotTextIncorrect,
-                    ]}>
-                      {filled[globalIdx] || ''}
-                    </Text>
-                  </Animated.View>
-                )}
-              </Animated.View>
+                <Animated.View
+                  style={[
+                    styles.slot,
+                    { width: computedSlotSize, height: computedSlotSize + 8 },
+                    globalIdx === currentIndex && !showResult && styles.slotActive,
+                    !!filled[globalIdx] && !showResult && styles.slotFilled,
+                    // Estados de resultado
+                    showResult === 'correct' && styles.slotCorrect,
+                    showResult === 'incorrect' && styles.slotIncorrect,
+                    // Efecto de levitar si está seleccionado
+                    selectedIndex === globalIdx && !showResult && styles.slotSelected,
+                    {
+                      opacity: scaleAnim || 1,
+                      transform: [
+                        {
+                          scale: scaleAnim ? scaleAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [0, 1.2, 1],
+                          }) : 1,
+                        },
+                        {
+                          translateY: scaleAnim ? scaleAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [30, 0],
+                          }) : 0,
+                        },
+                        // Levitación animada sólo en el seleccionado
+                        selectedIndex === globalIdx
+                          ? {
+                              translateY: selectedAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0, -6],
+                              }),
+                            }
+                          : { translateY: 0 },
+                        selectedIndex === globalIdx
+                          ? {
+                              scale: selectedAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [1, 1.05],
+                              }),
+                            }
+                          : { scale: 1 },
+                      ],
+                    },
+                  ]}
+                >
+                  {ch !== ' ' && (
+                    <Animated.View
+                      style={[
+                        styles.letterContainer,
+                        letterAnim && {
+                          transform: [
+                            {
+                              scale: letterAnim.interpolate({
+                                inputRange: [0, 0.5, 1],
+                                outputRange: [0, 1.2, 1],
+                              }),
+                            },
+                            {
+                              rotate: letterAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['180deg', '0deg'],
+                              }),
+                            },
+                          ],
+                          opacity: letterAnim,
+                        },
+                        isRemoving && removeAnim && {
+                          transform: [
+                            {
+                              scale: removeAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0, 1],
+                              }),
+                            },
+                            {
+                              rotate: removeAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0deg', '-180deg'],
+                              }),
+                            },
+                          ],
+                          opacity: removeAnim,
+                        },
+                      ]}
+                    >
+                      <Text style={[
+                        styles.slotText, 
+                        globalIdx === currentIndex && !showResult && styles.slotTextActive,
+                        showResult === 'correct' && styles.slotTextCorrect,
+                        showResult === 'incorrect' && styles.slotTextIncorrect,
+                      ]}>
+                        {filled[globalIdx] || ''}
+                      </Text>
+                    </Animated.View>
+                  )}
+                </Animated.View>
+              </TouchableOpacity>
             );
           })}
         </View>
@@ -201,6 +234,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 0,
     elevation: 2,
+  },
+  slotSelected: {
+    shadowColor: '#60A5FA',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
+    borderColor: '#60A5FA',
   },
   slotCorrect: {
     backgroundColor: '#10B981',

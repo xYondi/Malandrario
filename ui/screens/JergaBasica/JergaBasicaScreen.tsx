@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../../theme/colors';
 import HudBar from './components/HudBar';
@@ -34,6 +34,7 @@ import { UserProgressService } from '../../../services/UserProgressService';
 
 export const JergaBasicaScreen: React.FC = () => {
   const navigation = useNavigation();
+  const route = useRoute<any>();
   // Estados del juego
   const [currentQuestion, setCurrentQuestion] = useState<number>(0);
   const [vidas, setVidas] = useState<number>(3);
@@ -75,6 +76,7 @@ export const JergaBasicaScreen: React.FC = () => {
   const [showRewardAnimation, setShowRewardAnimation] = useState<boolean>(false);
   const [rewardAmount, setRewardAmount] = useState<number>(0);
   const kbRef = useRef<InputKeyboardRef>(null);
+  const correctSoundRef = useRef<any>(null);
 
   // Preguntas del nivel actual
   const questions = ALL_LEVELS[nivel as LevelNumber] || ALL_LEVELS[1];
@@ -98,6 +100,39 @@ export const JergaBasicaScreen: React.FC = () => {
   // La imagen de fondo se muestra inmediatamente
   useEffect(() => {
     setImageLoaded(true);
+  }, []);
+
+  // Cargar sonido de acierto
+  useEffect(() => {
+    let isMounted = true;
+    const loadSound = async () => {
+      try {
+        const ExpoAV: any = require('expo-av');
+        // Configurar modo de audio (iOS silencioso, ducking en Android)
+        try {
+          await ExpoAV.Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            allowsRecordingIOS: false,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          });
+        } catch {}
+        const { sound } = await ExpoAV.Audio.Sound.createAsync(
+          require('../../../assets/sounds/correct.wav')
+        );
+        if (isMounted) correctSoundRef.current = sound;
+        try { await sound.setVolumeAsync(0.9); } catch {}
+      } catch (e) {
+        // Silencioso si no existe el archivo o falla la carga
+        correctSoundRef.current = null;
+      }
+    };
+    loadSound();
+    return () => {
+      isMounted = false;
+      try { correctSoundRef.current?.unloadAsync(); } catch {}
+    };
   }, []);
 
   const normalize = (s: string): string => s
@@ -215,6 +250,40 @@ export const JergaBasicaScreen: React.FC = () => {
     }
   }, [imageLoaded]);
 
+  // Si llegó una palabra objetivo desde el diccionario, saltar a su pregunta
+  useEffect(() => {
+    const paramWord = route?.params?.targetWord as string | undefined;
+    if (!paramWord) return;
+
+    const target = normalize(paramWord);
+    let foundLevel: number | null = null;
+    let foundIndex: number | null = null;
+
+    const levels = Object.keys(ALL_LEVELS) as unknown as number[];
+    for (const lvl of levels) {
+      const qs = ALL_LEVELS[lvl as LevelNumber] || [];
+      for (let i = 0; i < qs.length; i++) {
+        const q = qs[i];
+        const answer = normalize(q.a.replace(/\s+/g, ' '));
+        const accepted = Array.isArray(q.accepted) ? q.accepted.map(a => normalize(a.replace(/\s+/g, ' '))) : [];
+        if (answer.includes(target) || accepted.some(a => a.includes(target))) {
+          foundLevel = lvl;
+          foundIndex = i;
+          break;
+        }
+      }
+      if (foundLevel !== null) break;
+    }
+
+    if (foundLevel !== null && foundIndex !== null) {
+      // Aplicar cambio de nivel y pregunta con pequeña animación
+      try {
+        setNivel(foundLevel);
+        setCurrentQuestion(foundIndex);
+      } catch {}
+    }
+  }, [route?.params?.targetWord]);
+
   useEffect(() => {
     // Actualizar progreso basado en preguntas respondidas
     const progressPercentage = (currentQuestion / questions.length) * 100;
@@ -302,6 +371,40 @@ export const JergaBasicaScreen: React.FC = () => {
     if (correct) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Reproducir sonido de acierto
+      const playCorrect = async () => {
+        try {
+          console.log('🔊 [Opciones] Intentando reproducir sonido de acierto...');
+          let s: any = correctSoundRef.current;
+          if (!s) {
+            console.log('🔊 [Opciones] Sonido no cargado, cargando...');
+            // Carga perezosa si aún no está cargado
+            try {
+              const ExpoAV: any = require('expo-av');
+              const res = await ExpoAV.Audio.Sound.createAsync(
+                require('../../../assets/sounds/correct.wav')
+              );
+              s = res.sound;
+              correctSoundRef.current = s;
+              try { await s.setVolumeAsync(0.9); } catch {}
+              console.log('🔊 [Opciones] Sonido cargado exitosamente');
+            } catch (e) {
+              console.error('🔊 [Opciones] Error cargando sonido:', e);
+            }
+          }
+          if (s) {
+            try { await s.stopAsync(); } catch {}
+            try { await s.setPositionAsync(0); } catch {}
+            await s.playAsync();
+            console.log('🔊 [Opciones] Sonido reproducido exitosamente');
+          } else {
+            console.log('🔊 [Opciones] No se pudo cargar el sonido');
+          }
+        } catch (e) {
+          console.error('🔊 [Opciones] Error reproduciendo sonido:', e);
+        }
+      };
+      playCorrect();
     } else {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

@@ -95,8 +95,10 @@ const FreeItem: React.FC<FreeItemProps> = ({
         activeOpacity={0.9}
         disabled={!isAvailable}
       >
-        {/* Fondo blanco estilo cartoon */}
-        <View style={styles.cartoonCardMain}>
+        {/* Wrapper de sombra externo para evitar clipping con bordes redondeados */}
+        <View style={styles.shadowWrapper}>
+          {/* Fondo blanco estilo cartoon */}
+          <View style={styles.cartoonCardMain}>
           {/* Contenido vertical */}
           <View style={styles.cartoonContent}>
             {/* Título y subtítulo */}
@@ -126,6 +128,7 @@ const FreeItem: React.FC<FreeItemProps> = ({
               </View>
             </View>
           </View>
+          </View>
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -137,6 +140,14 @@ const styles = StyleSheet.create({
   cartoonCard: {
     flex: 1,
     position: 'relative',
+  },
+  shadowWrapper: {
+    borderRadius: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
   },
   freeBadge: {
     position: 'absolute',
@@ -165,20 +176,16 @@ const styles = StyleSheet.create({
   },
   cartoonCardContent: {
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   cartoonCardMain: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 16,
     minHeight: 180,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: '#E5E7EB',
-    shadowColor: '#D1D5DB',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.8,
-    shadowRadius: 0,
-    elevation: 8,
+    // Quitar sombras del contenido para que no se corten con el borde
   },
   cartoonContent: {
     alignItems: 'center',
@@ -224,7 +231,7 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: '#0F172A',
     textAlign: 'center',
     marginBottom: 4,
     lineHeight: 20,
@@ -239,13 +246,13 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   cartoonNumber: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '900',
-    color: '#1E40AF',
+    color: '#1E3A8A',
     marginBottom: 12,
-    textShadowColor: 'rgba(30, 64, 175, 0.15)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowColor: 'transparent',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 0,
     letterSpacing: -0.5,
   },
   cartoonButton: {
@@ -253,26 +260,30 @@ const styles = StyleSheet.create({
   },
   cartoonButtonMain: {
     borderRadius: 25,
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 8,
     position: 'relative',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#22C55E',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 0,
-    elevation: 4,
+    borderWidth: 0,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
     minHeight: 44,
+    overflow: 'hidden',
   },
   cartoonButtonShadow: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: '40%',
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
+    height: '28%',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    // Redondear el borde superior para evitar "corte recto"
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    backgroundColor: 'rgba(0,0,0,0.12)',
   },
   cartoonButtonText: {
     fontSize: 13,
@@ -280,8 +291,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
     zIndex: 2,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 1, height: 1 },
+    textShadowColor: 'transparent',
+    textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 0,
   },
 });
