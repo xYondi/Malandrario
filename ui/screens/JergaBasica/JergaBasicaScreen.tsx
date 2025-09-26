@@ -877,8 +877,6 @@ export const JergaBasicaScreen: React.FC = () => {
               nivel={nivel}
               currentQuestion={currentQuestion}
               totalQuestions={questions.length}
-              titleGradientAnim={titleGradientAnim}
-              lastQuestionCueAnim={lastQuestionCueAnim}
             />
           </Animated.View>
 

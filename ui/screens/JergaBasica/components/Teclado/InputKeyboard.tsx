@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
-import { View, StyleSheet, Dimensions, Animated } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Animated } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import AnswerSlots from './components/AnswerSlots';
 import KeyboardPanel from './components/KeyboardPanel';
@@ -45,7 +45,10 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
   const [slotScaleAnimations, setSlotScaleAnimations] = useState<{[key: number]: Animated.Value}>({});
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const correctSoundRef = useRef<any>(null);
+  const keySoundPool = useRef<any[]>([]);
+  const currentSoundIndex = useRef<number>(0);
+  const [showPistolSpend, setShowPistolSpend] = useState<boolean>(false);
+  const pistolSpendAnim = useRef(new Animated.Value(0)).current;
 
   // Calcular distribución de slots
   const gap = 3;
@@ -85,39 +88,47 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
     .replace(/\s+/g, ' ')
     .trim();
 
-  // Función para reproducir sonido de acierto
-  const playCorrectSound = async () => {
-    try {
-      console.log('🔊 Intentando reproducir sonido de acierto...');
-      let s: any = correctSoundRef.current;
-      if (!s) {
-        console.log('🔊 Sonido no cargado, cargando...');
-        // Carga perezosa si aún no está cargado
-        try {
-          const ExpoAV: any = require('expo-av');
-          const res = await ExpoAV.Audio.Sound.createAsync(
-            require('../../../../../assets/sounds/correct.wav')
-          );
-          s = res.sound;
-          correctSoundRef.current = s;
-          try { await s.setVolumeAsync(0.9); } catch {}
-          console.log('🔊 Sonido cargado exitosamente');
-        } catch (e) {
-          console.error('🔊 Error cargando sonido:', e);
-        }
-      }
-      if (s) {
-        try { await s.stopAsync(); } catch {}
-        try { await s.setPositionAsync(0); } catch {}
-        await s.playAsync();
-        console.log('🔊 Sonido reproducido exitosamente');
-      } else {
-        console.log('🔊 No se pudo cargar el sonido');
-      }
-    } catch (e) {
-      console.error('🔊 Error reproduciendo sonido:', e);
+  // Función para reproducir sonido de tecla (permite superposición)
+  const playKeySound = () => {
+    if (keySoundPool.current.length === 0) return;
+    
+    // Usar el siguiente sonido del pool (round-robin)
+    const soundIndex = currentSoundIndex.current;
+    const sound = keySoundPool.current[soundIndex];
+    currentSoundIndex.current = (currentSoundIndex.current + 1) % keySoundPool.current.length;
+    
+    if (sound) {
+      // Reproducir sin interrumpir otros sonidos
+      sound.setPositionAsync(0).then(() => {
+        sound.playAsync().catch(() => {
+          // Ignorar errores de reproducción
+        });
+      }).catch(() => {});
     }
   };
+
+  // Función para mostrar animación de gasto de pistolitas
+  const showPistolSpendAnimation = () => {
+    setShowPistolSpend(true);
+    pistolSpendAnim.setValue(0);
+    
+    Animated.sequence([
+      Animated.timing(pistolSpendAnim, {
+        toValue: 1,
+        duration: 400, // Más rápido
+        useNativeDriver: true,
+      }),
+      Animated.delay(800), // Menos tiempo de pausa
+      Animated.timing(pistolSpendAnim, {
+        toValue: 0,
+        duration: 300, // Más rápido
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowPistolSpend(false);
+    });
+  };
+
 
   const isComplete = useMemo(() => {
     for (let i = 0; i < slots.length; i++) {
@@ -127,38 +138,6 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
     return slots.length > 0;
   }, [filled, slots]);
 
-  // Cargar sonido de acierto
-  useEffect(() => {
-    let isMounted = true;
-    const loadSound = async () => {
-      try {
-        const ExpoAV: any = require('expo-av');
-        // Configurar modo de audio (iOS silencioso, ducking en Android)
-        try {
-          await ExpoAV.Audio.setAudioModeAsync({
-            playsInSilentModeIOS: true,
-            allowsRecordingIOS: false,
-            staysActiveInBackground: false,
-            shouldDuckAndroid: true,
-            playThroughEarpieceAndroid: false,
-          });
-        } catch {}
-        const { sound } = await ExpoAV.Audio.Sound.createAsync(
-          require('../../../../../assets/sounds/correct.wav')
-        );
-        if (isMounted) correctSoundRef.current = sound;
-        try { await sound.setVolumeAsync(0.9); } catch {}
-      } catch (e) {
-        // Silencioso si no existe el archivo o falla la carga
-        correctSoundRef.current = null;
-      }
-    };
-    loadSound();
-    return () => {
-      isMounted = false;
-      try { correctSoundRef.current?.unloadAsync(); } catch {}
-    };
-  }, []);
 
   // Resetear estado cuando cambia la pregunta
   useEffect(() => {
@@ -186,16 +165,68 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
             if (newSlotScaleAnimations[index]) {
               Animated.spring(newSlotScaleAnimations[index], {
                 toValue: 1,
-                tension: 120,
-                friction: 6,
+                tension: 200,
+                friction: 8,
                 useNativeDriver: true,
               }).start();
             }
-          }, index * 120);
+          }, index * 80);
         }
       });
     }, 100);
   }, [answer, slots.length]);
+
+  // Cargar pool de sonidos de tecla al inicializar
+  useEffect(() => {
+    let isMounted = true;
+    const loadKeySoundPool = async () => {
+      try {
+        const ExpoAV: any = require('expo-av');
+        // Configurar modo de audio (iOS silencioso, ducking en Android)
+        try {
+          await ExpoAV.Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            allowsRecordingIOS: false,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          });
+        } catch {}
+        
+        // Crear múltiples instancias del sonido para permitir superposición
+        const soundCount = 5; // 5 instancias para permitir escritura muy rápida
+        const sounds = [];
+        
+        for (let i = 0; i < soundCount; i++) {
+          try {
+            const { sound } = await ExpoAV.Audio.Sound.createAsync(
+              require('../../../../../assets/sounds/tecla.wav')
+            );
+            await sound.setVolumeAsync(0.7);
+            sounds.push(sound);
+          } catch (e) {
+            console.error(`Error cargando sonido ${i}:`, e);
+          }
+        }
+        
+        if (isMounted) {
+          keySoundPool.current = sounds;
+        }
+      } catch (e) {
+        console.error('Error cargando pool de sonidos de tecla:', e);
+        keySoundPool.current = [];
+      }
+    };
+    loadKeySoundPool();
+    return () => {
+      isMounted = false;
+      // Limpiar todos los sonidos del pool
+      keySoundPool.current.forEach(sound => {
+        try { sound?.unloadAsync(); } catch {}
+      });
+      keySoundPool.current = [];
+    };
+  }, []);
 
   useEffect(() => { 
     setFilled(Array(slots.length).fill('')); 
@@ -214,6 +245,9 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
     setHasSubmitted(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
+    // Reproducir sonido de tecla
+    playKeySound();
+    
     // Animación de tecla presionada
     if (!keyAnimations.current[key]) {
       keyAnimations.current[key] = new Animated.Value(1);
@@ -222,12 +256,12 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
     Animated.sequence([
       Animated.timing(keyAnimations.current[key], {
         toValue: 0.9,
-        duration: 100,
+        duration: 80,
         useNativeDriver: true,
       }),
       Animated.timing(keyAnimations.current[key], {
         toValue: 1,
-        duration: 100,
+        duration: 80,
         useNativeDriver: true,
       }),
     ]).start();
@@ -258,7 +292,7 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
       Animated.parallel([
         Animated.timing(letterAnim, {
           toValue: 1,
-          duration: 400,
+          duration: 200,
           useNativeDriver: true,
         }),
       ]).start();
@@ -275,6 +309,9 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
     if (disabled || isAnimating) return;
     
     setHasSubmitted(false);
+    
+    // Reproducir sonido de tecla
+    playKeySound();
     
     // Si hay una baldosa seleccionada con letra, eliminar esa
     let removeIndex = -1;
@@ -299,7 +336,7 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
       Animated.parallel([
         Animated.timing(removeAnim, {
           toValue: 0,
-          duration: 300,
+          duration: 200,
           useNativeDriver: true,
         }),
       ]).start(() => {
@@ -315,6 +352,9 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
 
   const handleClear = () => { 
     if (disabled || isAnimating) return;
+    
+    // Reproducir sonido de tecla
+    playKeySound();
     
     // Encontrar todas las letras llenas
     const indices: number[] = [];
@@ -347,7 +387,7 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
       
       Animated.timing(removeAnim, {
         toValue: 0,
-        duration: 200,
+        duration: 150,
         useNativeDriver: true,
       }).start(() => {
         setRemovingLetter(null);
@@ -362,7 +402,7 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
         // Continuar con la siguiente letra después de un pequeño delay
         setTimeout(() => {
           runStep();
-        }, 50);
+        }, 30);
       });
     };
     
@@ -379,8 +419,8 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
       setShowResult(isCorrect ? 'correct' : 'incorrect');
       
       if (isCorrect) {
-        // Reproducir sonido inmediatamente cuando se detecta respuesta correcta
-        playCorrectSound();
+        // El sonido se reproduce en JergaBasicaScreen.tsx cuando recibe la respuesta
+        // No reproducir aquí para evitar duplicación
         
         slots.forEach((ch, index) => {
           if (ch !== ' ') {
@@ -420,13 +460,18 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
         });
       }
       
+      // Calcular el tiempo total de animación de las baldosas
+      const maxSlotDelay = (slots.length - 1) * 120; // Delay máximo de las baldosas
+      const slotAnimationDuration = 1600; // Duración aproximada de las 4 animaciones spring
+      const totalSlotTime = maxSlotDelay + slotAnimationDuration;
+      
       Animated.sequence([
         Animated.timing(resultAnim, {
           toValue: 1,
           duration: 300,
           useNativeDriver: true,
         }),
-        Animated.delay(1000),
+        Animated.delay(Math.max(1000, totalSlotTime - 300)), // Asegurar que las baldosas terminen
         Animated.timing(resultAnim, {
           toValue: 0,
           duration: 200,
@@ -483,24 +528,50 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
       const targetSet = new Set(slots.map(s => s.toUpperCase()).filter(s => s !== ' '));
       const wrong = ALPHABET.filter(l => !targetSet.has(l));
       
+      // Mostrar animación de gasto de pistolitas
+      showPistolSpendAnimation();
+      
+      // Reproducir sonido de tecla al inicio del efecto
+      playKeySound();
+      
+      // Animación sutil de ocultación con efecto cascada
       wrong.forEach((letter, idx) => {
         setTimeout(() => {
           const keyAnim = keyAnimations.current[letter];
           if (keyAnim) {
+            // Secuencia de animación más suave y elegante
             Animated.sequence([
+              // Primero un pequeño "shake" o vibración sutil
               Animated.timing(keyAnim, {
-                toValue: 0.8,
-                duration: 200,
+                toValue: 1.05,
+                duration: 150,
                 useNativeDriver: true,
               }),
               Animated.timing(keyAnim, {
-                toValue: 0.3,
+                toValue: 0.95,
+                duration: 150,
+                useNativeDriver: true,
+              }),
+              // Luego el efecto de desvanecimiento gradual
+              Animated.timing(keyAnim, {
+                toValue: 0.7,
+                duration: 300,
+                useNativeDriver: true,
+              }),
+              Animated.timing(keyAnim, {
+                toValue: 0.4,
                 duration: 200,
+                useNativeDriver: true,
+              }),
+              // Finalmente ocultar completamente
+              Animated.timing(keyAnim, {
+                toValue: 0.1,
+                duration: 250,
                 useNativeDriver: true,
               }),
             ]).start();
           }
-        }, idx * 50);
+        }, idx * 80); // Efecto cascada más lento para mejor visibilidad
       });
       
       setDisabledLetters(new Set(wrong));
@@ -547,30 +618,67 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
         const correctAnswer = slots.map(ch => (ch === ' ' ? ' ' : ch.toUpperCase()));
         setFilled(correctAnswer);
         
-        const allSlots = slots.map((_, index) => index).filter(i => slots[i] !== ' ');
-        allSlots.forEach((index, idx) => {
-          setTimeout(() => {
-            const anim = letterAnimations[index];
-            if (anim) {
-              Animated.sequence([
-                Animated.timing(anim, {
-                  toValue: 1.2,
-                  duration: 150,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(anim, {
-                  toValue: 1,
-                  duration: 150,
-                  useNativeDriver: true,
-                }),
-              ]).start();
-            }
-          }, idx * 50);
+        // Activar animaciones de las baldosas (efecto de rebote verde)
+        slots.forEach((ch, index) => {
+          if (ch !== ' ') {
+            setTimeout(() => {
+              const anim = slotScaleAnimations[index];
+              if (anim) {
+                // Resetear la animación y aplicar rebote
+                anim.setValue(1);
+                
+                // Efecto de rebote múltiple como una pelota
+                Animated.sequence([
+                  // Primer rebote grande
+                  Animated.spring(anim, {
+                    toValue: 1.6,
+                    tension: 200,
+                    friction: 2,
+                    useNativeDriver: true,
+                  }),
+                  // Segundo rebote medio
+                  Animated.spring(anim, {
+                    toValue: 1.3,
+                    tension: 220,
+                    friction: 4,
+                    useNativeDriver: true,
+                  }),
+                  // Tercer rebote pequeño
+                  Animated.spring(anim, {
+                    toValue: 1.15,
+                    tension: 240,
+                    friction: 6,
+                    useNativeDriver: true,
+                  }),
+                  // Retorno final suave
+                  Animated.spring(anim, {
+                    toValue: 1,
+                    tension: 120,
+                    friction: 10,
+                    useNativeDriver: true,
+                  }),
+                ]).start();
+              }
+            }, index * 120); // Efecto cascada en orden secuencial
+          }
         });
         
-        setTimeout(() => {
+        // Activar animación de resultado (colores)
+        Animated.sequence([
+          Animated.timing(resultAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.delay(1000),
+          Animated.timing(resultAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
           onSubmit(answer);
-        }, allSlots.length * 50 + 300);
+        });
       }
     }
   }), [filled, slots, isComplete, disabled, hasSubmitted, currentValue]);
@@ -598,7 +706,7 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
             setRemovingLetter({ index: idx, anim: removeAnim });
             Animated.timing(removeAnim, {
               toValue: 0,
-              duration: 220,
+              duration: 150,
               useNativeDriver: true,
             }).start(() => {
               setRemovingLetter(null);
@@ -621,6 +729,37 @@ const InputKeyboard = forwardRef<InputKeyboardRef, InputKeyboardProps>(({
         keyAnimations={keyAnimations}
         accessoryRight={accessoryRight}
       />
+
+      {/* Animación de gasto de pistolitas */}
+      {showPistolSpend && (
+        <Animated.View
+          style={[
+            styles.pistolSpendOverlay,
+            {
+              opacity: pistolSpendAnim,
+              transform: [
+                {
+                  scale: pistolSpendAnim.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.9, 1.05, 1], // Efecto más sutil
+                  }),
+                },
+                {
+                  translateY: pistolSpendAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [10, 0], // Menos movimiento
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.pistolSpendContainer}>
+            <Text style={styles.pistolSpendText}>-50</Text>
+            <Text style={styles.pistolSpendLabel}>Pistolitas</Text>
+          </View>
+        </Animated.View>
+      )}
     </View>
   );
 });
@@ -630,6 +769,47 @@ const styles = StyleSheet.create({
     gap: 12, 
     marginBottom: 16, 
     paddingTop: 18 
+  },
+  pistolSpendOverlay: {
+    position: 'absolute',
+    top: 80, // Exactamente donde está el botón del ojo
+    left: '50%',
+    marginLeft: -45,
+    zIndex: 1000,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pistolSpendContainer: {
+    backgroundColor: 'rgba(239, 68, 68, 0.85)', // Más sutil
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#DC2626',
+  },
+  pistolSpendText: {
+    fontSize: 24, // Más pequeño
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  pistolSpendLabel: {
+    fontSize: 12, // Más pequeño
+    fontWeight: '600',
+    color: '#FEF2F2',
+    marginTop: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
 });
 

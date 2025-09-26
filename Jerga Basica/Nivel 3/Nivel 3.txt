@@ -2,60 +2,60 @@ Nivel 3: Preguntas de "Traduce la Jerga"
 
 Pregunta 1: Si te roban en la calle, ¿qué te dirían que te cayó encima?
 
-Opciones: a) Te cayó un ladrón, b) Te cayó un malandro, c) Te cayó un delincuente, d) Te cayó la noche.
+Opciones: a) Te cayó un ladrón, b) Te cayó un malandro (correcta), c) Te cayó un delincuente, d) Te cayó la noche.
 
 Pista: Es la palabra más auténtica para referirse a un criminal.
 
 Pregunta 2: Después de una fiesta, un chamo se levanta con un malestar terrible y no puede ni hablar. ¿Cómo describiría su estado?
 
-Opciones: a) Un malestar, b) Tiene un ratón con cara de perro, c) Un guayabo, d) Una resaca.
+Opciones: a) Un malestar, b) Tiene un ratón con cara de perro, c) Un guayabo, d) Una resaca (correcta).
 
 Pista: Lo que sientes después de una noche de fiesta.
 
 Pregunta: Si alguien hace algo muy tonto o estúpido y te da rabia, ¿qué le dirías?
 
-Opciones 3: a) Que eres un tonto, b) Que eres un bobo, c) Que eres un carajo, d) Que eres un pajuo.
+Opciones 3: a) Que eres un tonto, b) Que eres un bobo, c) Que eres un carajo, d) Que eres un pajuo (correcta, en esta haras que el usuario escriba la palabra pajuo en el teclado).
 
 Pista: Es un insulto muy común en la calle.
 
-Pregunta 4: En la cárcel, si le dices al guardia lo que un reo está haciendo, ¿qué serías para los otros reos?
+Pregunta 4: En la cárcel, si le dices al guardia lo que un preso está haciendo, ¿qué serías para los otros presos?
 
-Opciones: a) Un chismoso, b) Un sapo, c) Un perico, d) Un lagarto.
+Opciones: a) Un chismoso, b) Un sapo (correcto, en esta haras que el usuario escriba la palabra un sapo en el teclado), c) Un perico, d) Un lagarto.
 
 Pista: Se usa para describir a una persona que delata a otros.
 
 Pregunta 5: Un chamo intenta intimidarte en la calle, pero es bastante bajo de estatura. ¿Cómo lo describirías en la jerga para burlarte de él?
 
-Opciones: a) Es un "pequeño", b) Es un "bajito", c) Es un "enanito", d) Es un "tapa de frasco".
+Opciones: a) Es un "pequeño", b) Es un "bajito", c) Es un "enanito", d) Es un "tapa de frasco" (correcta).
 
 Pista: Es un insulto muy popular y no se refiere a la estatura.
 
 Pregunta 6: Te invitan a una casa para celebrar un cumpleaños, y ves que hay mucha gente bailando y bebiendo. ¿Cómo describirías el ambiente?
 
-Opciones: a) Una parranda, b) Una fiesta, c) Una rumba, d) Un jolgorio.
+Opciones: a) Una parranda (correcta, en esta haras que el usuario escriba la palabra una parranda en el teclado), b) Una fiesta, c) Una rumba, d) Un jolgorio.
 
 Pista: Se usa para describir una fiesta con mucha música.
 
-Pregunta 7: Tu pana te llama y te dice que solo puede verte por un momento. ¿Qué dirías que va a hacer?
+Pregunta 7: Tu pana te llama y te dice que necesita un favor. ¿Cómo se describiría favor en malandrario?
 
-Opciones: a) Echarse un ratico, b) Echarse una vuelta, c) Echarse una pasadita, d) Echarse un pasón.
+Opciones: a) Echarse un ratico, b) Echarse una vuelta, c) Echarse una pasadita, d) Una vuelta (correcta, en esta haras que el usuario escriba la palabra Una vuelta en el teclado).
 
 Pista: Es para describir algo que no va a durar mucho tiempo.
 
 Pregunta 8: Tu pana te dice que se quedó sin trabajo y sin dinero. ¿Qué dirías que está haciendo?
 
-Opciones: a) Pasando la olla, b) Pasando el mocho, c) Pasando la aguja, d) Pasando el palo.
+Opciones: a) Pasando la olla (correcta), b) Pasando el mocho, c) Pasando la aguja, d) Pasando el palo.
 
 Pista: Se usa para describir una situación económica muy difícil.
 
 Pregunta 9 : Después de ver algo muy impactante, un chamo se desmaya. ¿Qué le dio?
 
-Opciones: a) Le dio un ataque, b) Le dio un mareo, c) Le dio la pálida, d) Le dio la marea.
+Opciones: a) Le dio un ataque, b) Le dio un mareo, c) Le dio la pálida (correcta, en esta haces que el usuario escriba la palabra La palida en el teclado), d) Le dio la marea.
 
 Pista: Se usa para describir un desmayo.
 
 Pregunta 10: Si un amigo de toda la vida te presenta a un amigo que no conoces, ¿cómo lo llamarías?
 
-Opciones: a) Mi amigo, b) Mi pana, c) Mi convive, d) Mi pana.
+Opciones: a) Amigo, b) Mi pana, c) Mi convive, d) Mi causita, e) Pana (correcta),  f) Bro, g) Mano (correcta)
 
 Pista: Se usa para describir a una persona muy cercana.

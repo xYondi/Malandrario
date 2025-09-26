@@ -34,6 +34,7 @@ const KeyboardKey: React.FC<KeyboardKeyProps> = ({
   const opacityAnim = useRef(new Animated.Value(1)).current;
   const glassOpacityAnim = useRef(new Animated.Value(0.15)).current; // Más opacidad inicial para fondo liquid glass
   const rippleAnim = useRef(new Animated.Value(0)).current;
+  const rotationAnim = useRef(new Animated.Value(0)).current; // Para efectos de rotación sutil
   
   // Estado para controlar efectos de presionar
   const [isPressed, setIsPressed] = useState(false);
@@ -110,6 +111,24 @@ const KeyboardKey: React.FC<KeyboardKeyProps> = ({
     onPress(letter);
   };
 
+  // Función para crear efecto de ocultación sutil
+  const createHideEffect = () => {
+    if (useLiquidGlass) {
+      Animated.parallel([
+        Animated.timing(rotationAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0.1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  };
+
   return (
     <Animated.View
       style={[
@@ -130,7 +149,13 @@ const KeyboardKey: React.FC<KeyboardKeyProps> = ({
         <Animated.View style={[
           styles.keyContent,
           useLiquidGlass && {
-            transform: [{ scale: scaleAnim }],
+            transform: [
+              { scale: scaleAnim },
+              { rotate: rotationAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0deg', '5deg']
+              })}
+            ],
             opacity: opacityAnim
           }
         ]}>
@@ -194,7 +219,9 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   keyDisabled: { 
-    backgroundColor: '#E5E7EB' 
+    backgroundColor: '#E5E7EB',
+    opacity: 0.4, // Opacidad adicional para efecto de ocultación
+    transform: [{ scale: 0.9 }], // Escala reducida para efecto de "desvanecimiento"
   },
   keyTextDisabled: { 
     color: '#9CA3AF' 
@@ -242,6 +269,8 @@ const styles = StyleSheet.create({
   keyDisabledLiquidGlass: {
     backgroundColor: 'rgba(229, 231, 235, 0.4)', // Fondo gris con opacidad
     borderColor: 'rgba(156, 163, 175, 0.5)',
+    opacity: 0.3, // Opacidad adicional para efecto de ocultación
+    transform: [{ scale: 0.9 }], // Escala reducida para efecto de "desvanecimiento"
   },
   keyGlassBackground: {
     position: 'absolute',
